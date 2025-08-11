@@ -1,0 +1,10 @@
+{
+  "name": "mwfinance",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-config.js && mkdir -p dist && cp index.html dist/index.html",
+    "start": "npx serve dist -l 5173"
+  },
+  "devDependencies": {}
+}

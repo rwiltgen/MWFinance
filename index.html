@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>MWMoney — Saldos Diários</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #0b0b10;
+      --card: #141421;
+      --muted: #a8a8b3;
+      --border: #2c2c3f;
+      --row: #11111a;
+      --row-alt: #0f0f18;
+      --pos: #75e39a;
+      --neg: #ff8484;
+      --pill: #2a2a3a;
+      --shadow: rgba(0,0,0,.35);
+      --accent: #3c7cff;
+    }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; background: var(--bg); color: #eaeaea; }
+    h1 { margin: 0 0 8px; font-size: 20px; }
+    p.muted { color: var(--muted); margin: 0 0 12px; font-size: 13px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 12px; box-shadow: 0 6px 24px var(--shadow); }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    label { font-size: 13px; opacity: .9; }
+    input, select, button {
+      background: #1b1b2b; color: #eaeaea; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 14px;
+    }
+    button { cursor: pointer; font-weight: 600; }
+    button[disabled] { opacity: .5; cursor: not-allowed; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; table-layout: fixed; }
+    thead th {
+      position: sticky; top: 0; background: var(--card);
+      border-bottom: 1px solid var(--border); padding: 8px; text-align: left;
+    }
+    tbody tr:nth-child(odd) { background: var(--row); }
+    tbody tr:nth-child(even) { background: var(--row-alt); }
+    td { border-bottom: 1px solid var(--border); padding: 8px; vertical-align: top; }
+    .muted { color: var(--muted); }
+    details { background: #12121c; border: 1px solid #26263a; border-radius: 10px; padding: 6px 10px; }
+    details > summary { cursor: pointer; outline: none; }
+    ul { margin: 6px 0 0; padding-left: 16px; }
+    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--pill); margin-right: 6px; }
+    .credit { color: var(--pos); }
+    .debit  { color: var(--neg); }
+    .virtual { opacity: .85; }
+    .saldo { font-weight: 700; text-align: right; }
+    .saldo-pos { color: var(--pos); }
+    .saldo-neg { color: var(--neg); }
+    .row-neg { outline: 2px solid rgba(255, 132, 132, .18); }
+    .badge { font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--pill); }
+    .badge-count { background: #1e1e2a; }
+    .error { background: #2a1212; border: 1px solid #612020; padding: 10px 12px; border-radius: 10px; white-space: pre-wrap; }
+    .tools { display:flex; gap:6px; align-items:center; }
+    .tx-actions { display:inline-flex; gap:6px; align-items:center; margin-left:6px; }
+    .btn-link { background: transparent; border: 1px solid var(--pill); padding: 4px 8px; border-radius: 8px; font-size: 12px; }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+    /* Dia “bolinha” para mobile */
+    .day-chip {
+      display:inline-flex; align-items:center; justify-content:center;
+      width: 34px; height: 34px; border-radius: 50%;
+      background:#1b1b2b; border:1px solid var(--border); font-weight:700;
+    }
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0; background: rgba(0,0,0,.6);
+      display: none; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .modal { width: 100%; max-width: 520px; background: var(--card); border:1px solid var(--border); border-radius: 16px; padding: 16px; }
+    .modal h3 { margin: 0 0 8px; font-size: 18px; }
+    .grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .grid > div { display:flex; flex-direction: column; gap:6px; }
+    .modal .row-actions { display:flex; gap:8px; justify-content:flex-end; margin-top: 10px; }
+    .full { grid-column: 1 / -1; }
+    /* Larguras de colunas (ganho de espaço no mobile) */
+    .col-dia   { width: 56px; }
+    .col-saldo { width: 110px; }
+    .saldo { white-space: nowrap; }
+    @media (max-width: 600px) {
+      body { margin: 10px; }
+      h1 { font-size: 18px; }
+      table { font-size: 13px; }
+      .tx-actions { flex-wrap: wrap; gap:4px; }
+      details { padding: 6px 8px; }
+      .row { gap: 8px; }
+      .col-saldo { width: 96px; }
+    }
+  </style>
+</head>
+<body>
+  <h1>MWMoney — Saldos Diários</h1>
+  <p class="muted">Mês | Transações do dia | Saldo. Valores sem “R$” para caber melhor no celular.</p>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label for="conta">Conta</label><br/>
+        <select id="conta"></select>
+      </div>
+      <div>
+        <label for="mesRef">Mês</label><br/>
+        <input id="mesRef" type="month"/>
+      </div>
+      <div class="tools" style="align-self:flex-end;">
+        <button id="btnAtualizar">Atualizar</button>
+        <button id="btnMesAnterior" title="Mês anterior">◀︎</button>
+        <button id="btnMesSeguinte" title="Próximo mês">▶︎</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="output" class="card">
+    <div class="muted">Carregando contas…</div>
+  </div>
+
+  <!-- Modal de edição -->
+  <div id="modal" class="modal-backdrop">
+    <div class="modal">
+      <h3>Edição de transação</h3>
+      <div class="grid">
+        <div class="full">
+          <label>Descrição</label>
+          <input id="m_descricao" type="text"/>
+        </div>
+        <div>
+          <label>Tipo</label>
+          <select id="m_tipo">
+            <option value="credito">Crédito</option>
+            <option value="debito">Débito</option>
+          </select>
+        </div>
+        <div>
+          <label>Valor</label>
+          <input id="m_valor" type="number" step="0.01"/>
+        </div>
+        <div>
+          <label>Data</label>
+          <input id="m_data" type="date"/>
+        </div>
+        <div>
+          <label>Status</label>
+          <select id="m_status">
+            <option value="cadastrada">Cadastrada</option>
+            <option value="agendada">Agendada</option>
+            <option value="efetivada">Efetivada</option>
+          </select>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button id="m_cancel" class="btn-link">Cancelar</button>
+        <button id="m_save" class="btn-primary">Salvar</button>
+      </div>
+      <p id="m_hint" class="hint" style="margin-top:8px;"></p>
+    </div>
+  </div>
+
+  <!-- Config local -->
+  <script src="./config.js"></script>
+  <script>
+    if (!window.CONFIG || !window.CONFIG.SUPABASE_URL || !window.CONFIG.SUPABASE_ANON_KEY) {
+      document.getElementById('output').innerHTML =
+        '<div class="error">Arquivo <code>config.js</code> não encontrado ou incompleto. Copie <code>config.example.js</code> para <code>config.js</code> e preencha SUPABASE_URL/ANON_KEY.</div>';
+    }
+  </script>
+
+  <script>
+    const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
+
+    const headers = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    };
+
+    const $conta   = document.getElementById('conta');
+    const $mesRef  = document.getElementById('mesRef');
+    const $btn     = document.getElementById('btnAtualizar');
+    const $btnPrev = document.getElementById('btnMesAnterior');
+    const $btnNext = document.getElementById('btnMesSeguinte');
+    const $out     = document.getElementById('output');
+
+    // Modal refs
+    const $modal     = document.getElementById('modal');
+    const $m_desc    = document.getElementById('m_descricao');
+    const $m_tipo    = document.getElementById('m_tipo');
+    const $m_valor   = document.getElementById('m_valor');
+    const $m_data    = document.getElementById('m_data');
+    const $m_status  = document.getElementById('m_status');
+    const $m_cancel  = document.getElementById('m_cancel');
+    const $m_save    = document.getElementById('m_save');
+    const $m_hint    = document.getElementById('m_hint');
+
+    // Estado do modal
+    let modalState = null;
+
+    // Mês atual como padrão (YYYY-MM)
+    const today = new Date();
+    $mesRef.value = `${today.getUTCFullYear()}-${String(today.getUTCMonth()+1).padStart(2,'0')}`;
+
+    function money(v) {
+      const n = Number(v || 0);
+      // sem símbolo monetário
+      return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function dayOnly(iso) {
+      const d = new Date(iso);
+      if (isNaN(d)) return iso;
+      return d.getUTCDate();
+    }
+    function classSaldo(v) {
+      const n = Number(v || 0);
+      return n < 0 ? 'saldo saldo-neg' : 'saldo saldo-pos';
+    }
+    function addMonthsYM(ym, delta) {
+      const [y, m] = ym.split('-').map(Number);
+      const d = new Date(Date.UTC(y, m - 1, 1));
+      d.setUTCMonth(d.getUTCMonth() + delta);
+      return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
+    }
+
+    async function carregarContas() {
+      try {
+        const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
+        const res = await fetch(url, { headers });
+        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        const contas = await res.json();
+        if (!contas.length) {
+          $out.innerHTML = '<div class="error">Nenhuma conta encontrada na tabela <code>contas</code>.</div>';
+          return;
+        }
+        $conta.innerHTML = contas.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+        consultar();
+      } catch (e) {
+        $out.innerHTML = `<div class="error">Erro ao carregar contas: ${e.message}</div>`;
+      }
+    }
+
+    async function consultar() {
+      const conta = $conta.value;
+      const ym    = $mesRef.value; // YYYY-MM
+      if (!conta || !ym) {
+        $out.innerHTML = `<div>Selecione conta e mês.</div>`;
+        return;
+      }
+
+      const referencia = ym + '-01'; // passamos o 1º dia do mês para o RPC
+      const url = `${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
+      const body = { conta_nome: conta, referencia };
+
+      $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
+
+      try {
+        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+        if (!res.ok) {
+          const txt = await res.text();
+          throw new Error(`${res.status} ${res.statusText}\n${txt}`);
+        }
+        const rows = await res.json();
+        if (!rows.length) {
+          $out.innerHTML = `<div class="muted">Nenhum dado para ${ym}.</div>`;
+          return;
+        }
+        renderTabela(rows);
+      } catch (e) {
+        $out.innerHTML = `<div class="error"><strong>Erro na consulta:</strong>\n${e.message}</div>`;
+      }
+    }
+
+    function renderTabela(rows) {
+      const table = `
+        <table>
+          <thead>
+            <tr>
+              <th class="col-dia">Dia</th>
+              <th>Transações do dia</th>
+              <th class="col-saldo">Saldo</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => {
+              const txs = Array.isArray(r.transacoes) ? r.transacoes : [];
+              const itens = renderTransacoesDia(txs, r.dia);
+              const saldoClass = classSaldo(r.saldo);
+              const trClass = Number(r.saldo) < 0 ? 'row-neg' : '';
+              return `
+                <tr class="${trClass}">
+                  <td><span class="day-chip">${dayOnly(r.dia)}</span></td>
+                  <td>${itens}</td>
+                  <td class="${saldoClass}">${money(r.saldo)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+      $out.innerHTML = table;
+
+      document.querySelectorAll('select.tx-status').forEach(sel => {
+        sel.addEventListener('change', onChangeStatus);
+      });
+      document.querySelectorAll('button.tx-edit').forEach(btn => {
+        btn.addEventListener('click', onEdit);
+      });
+    }
+
+    function renderTransacoesDia(txs, diaIso) {
+      if (!txs.length) return '<span class="muted">—</span>';
+      return `
+        <details open>
+          <summary>
+            <span class="badge badge-count">${txs.length} transação(ões)</span>
+          </summary>
+          <ul>
+            ${txs.map(t => renderTransacaoItem(t, diaIso)).join('')}
+          </ul>
+        </details>
+      `;
+    }
+
+    function renderTransacaoItem(t, diaIso) {
+      const allOptions = [
+        { v: 'cadastrada', label: 'Cadastrada' },
+        { v: 'agendada',  label: 'Agendada'  },
+        { v: 'efetivada', label: 'Efetivada' }
+      ];
+
+      const select = `
+        <select class="tx-status"
+                data-virtual="${!!t.virtual}"
+                data-id="${t.id || ''}"
+                data-recorrencia-id="${t.recorrencia_id || ''}"
+                data-conta-id="${t.conta_id || ''}"
+                data-data="${t.data || diaIso}"
+                data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
+                data-tipo="${t.tipo}" data-valor="${t.valor}"
+                data-status-original="${t.status || 'cadastrada'}">
+          <option value="" selected disabled>${t.status || 'cadastrada'}</option>
+          ${allOptions.map(o => `<option value="${o.v}">${o.label}</option>`).join('')}
+        </select>
+      `;
+
+      const editBtn = `
+        <button class="tx-edit btn-link"
+                data-virtual="${!!t.virtual}"
+                data-id="${t.id || ''}"
+                data-recorrencia-id="${t.recorrencia_id || ''}"
+                data-conta-id="${t.conta_id || ''}"
+                data-data="${t.data || diaIso}"
+                data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
+                data-tipo="${t.tipo}" data-valor="${t.valor}"
+                data-status="${t.status || 'cadastrada'}">
+          Editar
+        </button>
+      `;
+
+      return `
+        <li class="${t.virtual ? 'virtual' : ''}">
+          <span class="pill ${t.tipo === 'credito' ? 'credit' : 'debit'}">${t.tipo}</span>
+          <strong>${t.descricao}</strong> — ${money(t.valor)}
+          ${t.virtual ? '<span class="pill">virtual</span>' : ''}
+          <span class="pill">${t.status}</span>
+          <span class="tx-actions">
+            ${select}
+            ${editBtn}
+          </span>
+        </li>
+      `;
+    }
+
+    async function onChangeStatus(e) {
+      const sel = e.currentTarget;
+      const novoStatus = sel.value;
+      if (!novoStatus) return;
+
+      const original = sel.dataset.statusOriginal || 'cadastrada';
+      if (original === 'efetivada' && novoStatus !== 'efetivada') {
+        const ok = confirm('Esta transação já estava EFETIVADA. Tem certeza que deseja reverter o status?');
+        if (!ok) { sel.value = ''; return; }
+      }
+
+      const isVirtual = sel.dataset.virtual === 'true';
+      if (isVirtual) {
+        try {
+          await materializar({
+            recorrencia_id: sel.dataset.recorrenciaId || sel.dataset.recorrencia_id,
+            conta_id:       sel.dataset.contaId || sel.dataset.conta_id,
+            data:           sel.dataset.data,
+            descricao:      sel.dataset.descricao,
+            tipo:           sel.dataset.tipo,
+            valor:          Number(sel.dataset.valor),
+            status:         novoStatus
+          });
+          await consultar();
+        } catch (err) {
+          alert('Não foi possível materializar a recorrência:\n' + err.message);
+        }
+        return;
+      }
+
+      // Real → PATCH status
+      const id = sel.dataset.id;
+      try {
+        await patchTransacao(id, { status: novoStatus });
+        await consultar();
+      } catch (err) {
+        alert('Erro ao atualizar status:\n' + err.message);
+      }
+    }
+
+    // Modal
+    function openModal(state) {
+      modalState = state;
+      $m_desc.value   = state.descricao || '';
+      $m_tipo.value   = state.tipo || 'debito';
+      $m_valor.value  = Number(state.valor || 0);
+      $m_data.value   = (state.data || '').slice(0,10);
+      $m_status.value = state.status || 'cadastrada';
+
+      $m_hint.textContent = state.virtual
+        ? 'Ocorrência virtual: ao salvar, será criada em public.transacoes com os valores acima.'
+        : (state.status === 'efetivada'
+            ? 'Atenção: você está editando uma transação EFETIVADA. Alterações exigem confirmação.'
+            : 'Edite livremente. Ao salvar, a transação será atualizada.');
+
+      $modal.style.display = 'flex';
+    }
+    function closeModal() {
+      $modal.style.display = 'none';
+      modalState = null;
+    }
+    document.getElementById('m_cancel').addEventListener('click', closeModal);
+
+    async function onEdit(e) {
+      const btn = e.currentTarget;
+      const state = {
+        virtual:        btn.dataset.virtual === 'true',
+        id:             btn.dataset.id || null,
+        recorrencia_id: btn.dataset.recorrenciaId || btn.dataset.recorrencia_id || null,
+        conta_id:       btn.dataset.contaId || btn.dataset.conta_id || null,
+        data:           btn.dataset.data,
+        descricao:      btn.dataset.descricao,
+        tipo:           btn.dataset.tipo,
+        valor:          Number(btn.dataset.valor),
+        status:         btn.dataset.status || 'cadastrada',
+        originalStatus: btn.dataset.status || 'cadastrada'
+      };
+      openModal(state);
+    }
+
+    document.getElementById('m_save').addEventListener('click', async () => {
+      if (!modalState) return;
+      const payload = {
+        descricao: $m_desc.value,
+        tipo: $m_tipo.value,
+        valor: Number($m_valor.value),
+        data: $m_data.value,
+        status: $m_status.value
+      };
+
+      try {
+        if (modalState.originalStatus === 'efetivada' &&
+            (payload.status !== 'efetivada' ||
+             payload.valor !== modalState.valor ||
+             payload.data !== modalState.data ||
+             payload.descricao !== modalState.descricao)) {
+          const ok = confirm('Esta transação estava EFETIVADA. Confirmar alteração/reversão?');
+          if (!ok) return;
+        }
+
+        if (modalState.virtual) {
+          await materializar({
+            recorrencia_id: modalState.recorrencia_id,
+            conta_id:       modalState.conta_id,
+            data:           payload.data,
+            descricao:      payload.descricao,
+            tipo:           payload.tipo,
+            valor:          payload.valor,
+            status:         payload.status
+          });
+        } else {
+          await patchTransacao(modalState.id, payload);
+        }
+        closeModal();
+        await consultar();
+      } catch (err) {
+        alert('Erro ao salvar:\n' + err.message);
+      }
+    });
+
+    async function patchTransacao(id, bodyObj) {
+      const url = `${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`;
+      const res = await fetch(url, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify(bodyObj)
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`${res.status} ${res.statusText}\n${txt}`);
+      }
+    }
+
+    async function materializar(bodyObj) {
+      const { recorrencia_id, conta_id, data } = bodyObj;
+      if (!recorrencia_id || !conta_id || !data) {
+        throw new Error('Campos necessários ausentes: recorrencia_id, conta_id, data.');
+      }
+      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(bodyObj)
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`${res.status} ${res.statusText}\n${txt}`);
+      }
+    }
+
+    // Navegação de mês
+    $btnPrev.addEventListener('click', () => {
+      $mesRef.value = addMonthsYM($mesRef.value, -1);
+      consultar();
+    });
+    $btnNext.addEventListener('click', () => {
+      $mesRef.value = addMonthsYM($mesRef.value, +1);
+      consultar();
+    });
+
+    $btn.addEventListener('click', consultar);
+
+    // Inicialização
+    carregarContas();
+
+    // fecha modal clicando fora
+    document.getElementById('modal').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeModal();
+    });
+  </script>
+</body>
+</html>
+
