@@ -44,6 +44,7 @@
     .saldo-pos { color: var(--pos); }
     .saldo-neg { color: var(--neg); }
     .row-neg { outline: 2px solid rgba(255, 132, 132, .18); }
+    .muted { color: var(--muted); }
 
     .tools { display:flex; gap:6px; align-items:center; }
 
@@ -61,7 +62,6 @@
     .credit { color: var(--pos); }
     .debit  { color: var(--neg); }
 
-    /* Colunas fixas para caber no mobile e a do meio se expande */
     .col-dia   { width: 56px; }
     .col-saldo { width: 110px; }
     @media (max-width: 600px) {
@@ -71,7 +71,7 @@
       .col-saldo { width: 96px; }
     }
 
-    /* Linha expansível (abaixo da linha principal) */
+    /* Expander (linha inteira abaixo) */
     tr.expander td { padding: 0; border-bottom: none; }
     .expand-card {
       background: #12121c;
@@ -111,7 +111,7 @@
   </div>
 
   <div id="output" class="card">
-    <div style="color:var(--muted)">Carregando contas…</div>
+    <div class="muted">Carregando contas…</div>
   </div>
 
   <!-- Modal de edição -->
@@ -155,13 +155,13 @@
     </div>
   </div>
 
-  <!-- config.js (gerado no build pela Vercel ou localmente) -->
+  <!-- config.js -->
   <script src="./config.js"></script>
   <script>
     const cfgOK = window.CONFIG && window.CONFIG.SUPABASE_URL && window.CONFIG.SUPABASE_ANON_KEY;
     if (!cfgOK) {
       document.getElementById('output').innerHTML =
-        '<div class="error">config.js não encontrado ou incompleto. A Vercel deve gerá-lo no build.</div>';
+        '<div class="error">config.js não encontrado ou incompleto.</div>';
     }
   </script>
 
@@ -184,11 +184,12 @@
 
     // Modal refs
     const $modal     = document.getElementById('modal');
-    const $m_desc    = document.getElementById('m_descricao');
-    const $m_tipo    = document.getElementById('m_tipo');
-    const $m_valor   = document.getElementById('m_valor');
-    const $m_data    = document.getElementById('m_data');
-    const $m_status  = document.getElementById('m_status');
+    const m_descricao= document.getElementById('m_descricao');
+    const m_tipo     = document.getElementById('m_tipo');
+    const m_valor    = document.getElementById('m_valor');
+    const m_data     = document.getElementById('m_data');
+    const m_status   = document.getElementById('m_status');
+    const m_hint     = document.getElementById('m_hint');
 
     let modalState = null;
 
@@ -196,23 +197,10 @@
     const today = new Date();
     $mesRef.value = `${today.getUTCFullYear()}-${String(today.getUTCMonth()+1).padStart(2,'0')}`;
 
-    function money(v) {
-      const n = Number(v || 0);
-      return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    }
-    function dayOnly(iso) {
-      const d = new Date(iso); if (isNaN(d)) return iso; return d.getUTCDate();
-    }
-    function classSaldo(v) {
-      const n = Number(v || 0);
-      return n < 0 ? 'saldo saldo-neg' : 'saldo saldo-pos';
-    }
-    function addMonthsYM(ym, delta) {
-      const [y, m] = ym.split('-').map(Number);
-      const d = new Date(Date.UTC(y, m - 1, 1));
-      d.setUTCMonth(d.getUTCMonth() + delta);
-      return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`;
-    }
+    function money(v){ const n=Number(v||0); return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function dayOnly(iso){ const d=new Date(iso); if(isNaN(d)) return iso; return d.getUTCDate(); }
+    function classSaldo(v){ const n=Number(v||0); return n<0?'saldo saldo-neg':'saldo saldo-pos'; }
+    function addMonthsYM(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(Date.UTC(y,m-1,1)); d.setUTCMonth(d.getUTCMonth()+delta); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
 
     async function carregarContas() {
       try {
@@ -234,28 +222,19 @@
     async function consultar() {
       const conta = $conta.value;
       const ym    = $mesRef.value;
-      if (!conta || !ym) {
-        $out.innerHTML = `<div>Selecione conta e mês.</div>`;
-        return;
-      }
+      if (!conta || !ym) { $out.innerHTML = `<div>Selecione conta e mês.</div>`; return; }
 
       const referencia = ym + '-01';
       const url = `${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
       const body = { conta_nome: conta, referencia };
 
-      $out.innerHTML = `<div style="color:var(--muted)">Consultando saldos…</div>`;
+      $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
 
       try {
         const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(`${res.status} ${res.statusText}\n${txt}`);
-        }
+        if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
         const rows = await res.json();
-        if (!rows.length) {
-          $out.innerHTML = `<div style="color:var(--muted)">Nenhum dado para ${ym}.</div>`;
-          return;
-        }
+        if (!rows.length) { $out.innerHTML = `<div class="muted">Nenhum dado para ${ym}.</div>`; return; }
         renderTabela(rows);
       } catch (e) {
         $out.innerHTML = `<div class="error"><strong>Erro na consulta:</strong>\n${e.message}</div>`;
@@ -263,6 +242,7 @@
     }
 
     function renderTabela(rows) {
+      const tbody = rows.map((r, idx) => renderLinhaDia(r, idx)).join('');
       const table = `
         <table>
           <thead>
@@ -272,23 +252,14 @@
               <th class="col-saldo">Saldo</th>
             </tr>
           </thead>
-          <tbody>
-            ${rows.map((r, idx) => renderLinhaDia(r, idx)).join('')}
-          </tbody>
+          <tbody>${tbody}</tbody>
         </table>
       `;
       $out.innerHTML = table;
 
-      // bind eventos dinâmicos
-      document.querySelectorAll('button.tx-toggle').forEach(btn => {
-        btn.addEventListener('click', onToggleExpander);
-      });
-      document.querySelectorAll('select.tx-status').forEach(sel => {
-        sel.addEventListener('change', onChangeStatus);
-      });
-      document.querySelectorAll('button.tx-edit').forEach(btn => {
-        btn.addEventListener('click', onEdit);
-      });
+      document.querySelectorAll('button.tx-toggle').forEach(btn => btn.addEventListener('click', onToggleExpander));
+      document.querySelectorAll('select.tx-status').forEach(sel => sel.addEventListener('change', onChangeStatus));
+      document.querySelectorAll('button.tx-edit').forEach(btn => btn.addEventListener('click', onEdit));
     }
 
     function renderLinhaDia(r, idx) {
@@ -296,34 +267,36 @@
       const saldoClass = classSaldo(r.saldo);
       const trClass = Number(r.saldo) < 0 ? 'row-neg' : '';
 
+      // Coluna do meio: botão só se houver transações; caso contrário, traço
+      const meio = txs.length
+        ? `<button class="tx-toggle btn-link" data-expander="exp-${idx}" aria-expanded="false" data-count="${txs.length}">
+             ► ${txs.length} transação(ões)
+           </button>`
+        : `<span class="muted">–</span>`;
+
       const linhaPrincipal = `
         <tr class="${trClass}">
           <td><span class="day-chip">${dayOnly(r.dia)}</span></td>
-          <td>
-            <button class="tx-toggle btn-link" data-expander="exp-${idx}">
-              ${txs.length} transação(ões)
-            </button>
-          </td>
+          <td>${meio}</td>
           <td class="${saldoClass}">${money(r.saldo)}</td>
         </tr>
       `;
 
-      const expander = `
-        <tr id="exp-${idx}" class="expander" style="display:none;">
-          <td colspan="3">
-            ${renderExpanderCard(txs, r.dia)}
-          </td>
-        </tr>
-      `;
+      // Só cria a linha do card se houver transações
+      const expander = txs.length
+        ? `
+          <tr id="exp-${idx}" class="expander" style="display:none;">
+            <td colspan="3">
+              ${renderExpanderCard(txs, r.dia)}
+            </td>
+          </tr>
+        `
+        : '';
 
       return linhaPrincipal + expander;
     }
 
     function renderExpanderCard(txs, diaIso) {
-      if (!txs.length) {
-        return `<div class="expand-card"><div class="expand-header"><span class="badge-count">0 transações</span></div><div style="color:var(--muted)">Sem lançamentos neste dia.</div></div>`;
-      }
-
       const itens = txs.map(t => {
         const select = `
           <select class="tx-status"
@@ -341,7 +314,6 @@
             <option value="efetivada">Efetivada</option>
           </select>
         `;
-
         const editBtn = `
           <button class="tx-edit btn-link"
                   data-virtual="${!!t.virtual}"
@@ -355,7 +327,6 @@
             Editar
           </button>
         `;
-
         return `
           <li>
             <span class="pill ${t.tipo === 'credito' ? 'credit' : 'debit'}">${t.tipo}</span>
@@ -377,10 +348,17 @@
     }
 
     function onToggleExpander(e) {
-      const id = e.currentTarget.dataset.expander;
+      const btn = e.currentTarget;
+      const id = btn.dataset.expander;
       const row = document.getElementById(id);
       if (!row) return;
-      row.style.display = (row.style.display === 'none' || !row.style.display) ? '' : 'none';
+      // usa getComputedStyle para estado real
+      const isHidden = window.getComputedStyle(row).display === 'none';
+      row.style.display = isHidden ? '' : 'none';
+      // atualiza seta/aria
+      btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
+      const count = btn.dataset.count || '';
+      btn.textContent = (isHidden ? '▼ ' : '► ') + `${count} transação(ões)`;
     }
 
     async function onChangeStatus(e) {
@@ -437,9 +415,9 @@
             ? 'Atenção: você está editando uma transação EFETIVADA. Alterações exigem confirmação.'
             : 'Edite livremente. Ao salvar, a transação será atualizada.');
 
-      $modal.style.display = 'flex';
+      document.getElementById('modal').style.display = 'flex';
     }
-    function closeModal() { $modal.style.display = 'none'; modalState = null; }
+    function closeModal(){ document.getElementById('modal').style.display = 'none'; modalState = null; }
 
     document.getElementById('m_cancel').addEventListener('click', closeModal);
 
@@ -523,7 +501,7 @@
     carregarContas();
 
     // Fecha modal clicando fora
-    $modal.addEventListener('click', (e) => { if (e.target === $modal) closeModal(); });
+    document.getElementById('modal').addEventListener('click', (e) => { if (e.target === document.getElementById('modal')) closeModal(); });
   </script>
 </body>
 </html>
