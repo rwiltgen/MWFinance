@@ -71,7 +71,6 @@
       .col-saldo { width: 96px; }
     }
 
-    /* Expander (linha inteira abaixo) */
     tr.expander td { padding: 0; border-bottom: none; }
     .expand-card {
       background: #12121c;
@@ -106,6 +105,7 @@
         <button id="btnAtualizar">Atualizar</button>
         <button id="btnMesAnterior" title="Mês anterior">◀︎</button>
         <button id="btnMesSeguinte" title="Próximo mês">▶︎</button>
+        <button id="btnNova" class="btn-primary">+ Nova Transação</button>
       </div>
     </div>
   </div>
@@ -114,10 +114,10 @@
     <div class="muted">Carregando contas…</div>
   </div>
 
-  <!-- Modal de edição -->
+  <!-- Modal -->
   <div id="modal" style="position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;">
     <div class="modal" style="width:100%; max-width:520px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px;">
-      <h3 style="margin:0 0 8px; font-size:18px;">Edição de transação</h3>
+      <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Edição de transação</h3>
       <div class="grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         <div style="grid-column:1 / -1; display:flex; flex-direction:column; gap:6px;">
           <label>Descrição</label>
@@ -155,36 +155,22 @@
     </div>
   </div>
 
-  <!-- config.js -->
   <script src="./config.js"></script>
   <script>
-    const cfgOK = window.CONFIG && window.CONFIG.SUPABASE_URL && window.CONFIG.SUPABASE_ANON_KEY;
-    if (!cfgOK) {
-      document.getElementById('output').innerHTML =
-        '<div class="error">config.js não encontrado ou incompleto.</div>';
-    }
-  </script>
-
-  <script>
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
-
-    const headers = {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation'
-    };
+    const headers = { apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' };
 
     const $conta   = document.getElementById('conta');
     const $mesRef  = document.getElementById('mesRef');
     const $btn     = document.getElementById('btnAtualizar');
     const $btnPrev = document.getElementById('btnMesAnterior');
     const $btnNext = document.getElementById('btnMesSeguinte');
+    const $btnNova = document.getElementById('btnNova');
     const $out     = document.getElementById('output');
 
-    // Modal refs
     const $modal     = document.getElementById('modal');
-    const m_descricao= document.getElementById('m_descricao');
+    const m_title    = document.getElementById('modalTitle');
+    const m_desc     = document.getElementById('m_descricao');
     const m_tipo     = document.getElementById('m_tipo');
     const m_valor    = document.getElementById('m_valor');
     const m_data     = document.getElementById('m_data');
@@ -193,315 +179,83 @@
 
     let modalState = null;
 
-    // Mês atual (YYYY-MM)
     const today = new Date();
     $mesRef.value = `${today.getUTCFullYear()}-${String(today.getUTCMonth()+1).padStart(2,'0')}`;
 
-    function money(v){ const n=Number(v||0); return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-    function dayOnly(iso){ const d=new Date(iso); if(isNaN(d)) return iso; return d.getUTCDate(); }
-    function classSaldo(v){ const n=Number(v||0); return n<0?'saldo saldo-neg':'saldo saldo-pos'; }
+    function money(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function dayOnly(iso){ const d=new Date(iso); return isNaN(d)?iso:d.getUTCDate(); }
+    function classSaldo(v){ return Number(v||0)<0?'saldo saldo-neg':'saldo saldo-pos'; }
     function addMonthsYM(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(Date.UTC(y,m-1,1)); d.setUTCMonth(d.getUTCMonth()+delta); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
 
     async function carregarContas() {
-      try {
-        const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
-        const res = await fetch(url, { headers });
-        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
-        const contas = await res.json();
-        if (!contas.length) {
-          $out.innerHTML = '<div class="error">Nenhuma conta encontrada na tabela <code>contas</code>.</div>';
-          return;
-        }
-        $conta.innerHTML = contas.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
-        consultar();
-      } catch (e) {
-        $out.innerHTML = `<div class="error">Erro ao carregar contas: ${e.message}</div>`;
-      }
+      const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
+      const res = await fetch(url, { headers });
+      const contas = await res.json();
+      $conta.innerHTML = contas.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+      consultar();
     }
 
     async function consultar() {
-      const conta = $conta.value;
-      const ym    = $mesRef.value;
-      if (!conta || !ym) { $out.innerHTML = `<div>Selecione conta e mês.</div>`; return; }
-
-      const referencia = ym + '-01';
+      const conta = $conta.value, ym = $mesRef.value;
+      const referencia = ym+'-01';
       const url = `${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
-      const body = { conta_nome: conta, referencia };
-
-      $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
-
-      try {
-        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-        if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
-        const rows = await res.json();
-        if (!rows.length) { $out.innerHTML = `<div class="muted">Nenhum dado para ${ym}.</div>`; return; }
-        renderTabela(rows);
-      } catch (e) {
-        $out.innerHTML = `<div class="error"><strong>Erro na consulta:</strong>\n${e.message}</div>`;
-      }
+      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify({ conta_nome: conta, referencia }) });
+      const rows = await res.json();
+      renderTabela(rows);
     }
 
-    function renderTabela(rows) {
-      const tbody = rows.map((r, idx) => renderLinhaDia(r, idx)).join('');
-      const table = `
-        <table>
-          <thead>
-            <tr>
-              <th class="col-dia">Dia</th>
-              <th>Transações do dia</th>
-              <th class="col-saldo">Saldo</th>
-            </tr>
-          </thead>
-          <tbody>${tbody}</tbody>
-        </table>
-      `;
-      $out.innerHTML = table;
-
-      document.querySelectorAll('button.tx-toggle').forEach(btn => btn.addEventListener('click', onToggleExpander));
-      document.querySelectorAll('select.tx-status').forEach(sel => sel.addEventListener('change', onChangeStatus));
-      document.querySelectorAll('button.tx-edit').forEach(btn => btn.addEventListener('click', onEdit));
+    function renderTabela(rows){
+      const tbody = rows.map((r, idx)=>renderLinhaDia(r, idx)).join('');
+      $out.innerHTML = `<table><thead><tr><th class="col-dia">Dia</th><th>Transações do dia</th><th class="col-saldo">Saldo</th></tr></thead><tbody>${tbody}</tbody></table>`;
+      document.querySelectorAll('button.tx-toggle').forEach(btn=>btn.addEventListener('click', onToggleExpander));
+      document.querySelectorAll('select.tx-status').forEach(sel=>sel.addEventListener('change', onChangeStatus));
+      document.querySelectorAll('button.tx-edit').forEach(btn=>btn.addEventListener('click', onEdit));
     }
 
-    function renderLinhaDia(r, idx) {
-      const txs = Array.isArray(r.transacoes) ? r.transacoes : [];
-      const saldoClass = classSaldo(r.saldo);
-      const trClass = Number(r.saldo) < 0 ? 'row-neg' : '';
-
-      // Coluna do meio: botão só se houver transações; caso contrário, traço
+    function renderLinhaDia(r, idx){
+      const txs = Array.isArray(r.transacoes)?r.transacoes:[];
       const meio = txs.length
-        ? `<button class="tx-toggle btn-link" data-expander="exp-${idx}" aria-expanded="false" data-count="${txs.length}">
-             ► ${txs.length} transação(ões)
-           </button>`
+        ? `<button class="tx-toggle btn-link" data-expander="exp-${idx}" aria-expanded="false" data-count="${txs.length}">► ${txs.length} transação(ões)</button>`
         : `<span class="muted">–</span>`;
-
-      const linhaPrincipal = `
-        <tr class="${trClass}">
-          <td><span class="day-chip">${dayOnly(r.dia)}</span></td>
-          <td>${meio}</td>
-          <td class="${saldoClass}">${money(r.saldo)}</td>
-        </tr>
-      `;
-
-      // Só cria a linha do card se houver transações
-      const expander = txs.length
-        ? `
-          <tr id="exp-${idx}" class="expander" style="display:none;">
-            <td colspan="3">
-              ${renderExpanderCard(txs, r.dia)}
-            </td>
-          </tr>
-        `
-        : '';
-
-      return linhaPrincipal + expander;
+      const linha = `<tr><td><span class="day-chip">${dayOnly(r.dia)}</span></td><td>${meio}</td><td class="${classSaldo(r.saldo)}">${money(r.saldo)}</td></tr>`;
+      const exp = txs.length?`<tr id="exp-${idx}" class="expander" style="display:none;"><td colspan="3">${renderExpanderCard(txs,r.dia)}</td></tr>`:'';
+      return linha+exp;
     }
 
-    function renderExpanderCard(txs, diaIso) {
-      const itens = txs.map(t => {
-        const select = `
-          <select class="tx-status"
-                  data-virtual="${!!t.virtual}"
-                  data-id="${t.id || ''}"
-                  data-recorrencia-id="${t.recorrencia_id || ''}"
-                  data-conta-id="${t.conta_id || ''}"
-                  data-data="${t.data || diaIso}"
-                  data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
-                  data-tipo="${t.tipo}" data-valor="${t.valor}"
-                  data-status-original="${t.status || 'cadastrada'}">
-            <option value="" selected disabled>${t.status || 'cadastrada'}</option>
-            <option value="cadastrada">Cadastrada</option>
-            <option value="agendada">Agendada</option>
-            <option value="efetivada">Efetivada</option>
+    function renderExpanderCard(txs,diaIso){
+      return `<div class="expand-card"><ul class="tx-list">${txs.map(t=>`
+        <li>
+          <span class="pill ${t.tipo==='credito'?'credit':'debit'}">${t.tipo}</span>
+          <strong>${t.descricao}</strong> — ${money(t.valor)}
+          <select class="tx-status" data-id="${t.id}" data-conta-id="${t.conta_id}" data-data="${t.data||diaIso}" data-descricao="${t.descricao}" data-tipo="${t.tipo}" data-valor="${t.valor}">
+            <option value="cadastrada" ${t.status==='cadastrada'?'selected':''}>Cadastrada</option>
+            <option value="agendada" ${t.status==='agendada'?'selected':''}>Agendada</option>
+            <option value="efetivada" ${t.status==='efetivada'?'selected':''}>Efetivada</option>
           </select>
-        `;
-        const editBtn = `
-          <button class="tx-edit btn-link"
-                  data-virtual="${!!t.virtual}"
-                  data-id="${t.id || ''}"
-                  data-recorrencia-id="${t.recorrencia_id || ''}"
-                  data-conta-id="${t.conta_id || ''}"
-                  data-data="${t.data || diaIso}"
-                  data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
-                  data-tipo="${t.tipo}" data-valor="${t.valor}"
-                  data-status="${t.status || 'cadastrada'}">
-            Editar
-          </button>
-        `;
-        return `
-          <li>
-            <span class="pill ${t.tipo === 'credito' ? 'credit' : 'debit'}">${t.tipo}</span>
-            <strong>${t.descricao}</strong> — ${money(t.valor)}
-            ${t.virtual ? '<span class="pill">virtual</span>' : ''}
-            <span class="tx-actions">${select}${editBtn}</span>
-          </li>
-        `;
-      }).join('');
-
-      return `
-        <div class="expand-card">
-          <div class="expand-header">
-            <span class="badge-count">${txs.length} transação(ões)</span>
-          </div>
-          <ul class="tx-list">${itens}</ul>
-        </div>
-      `;
+          <button class="tx-edit btn-link" data-id="${t.id}" data-conta-id="${t.conta_id}" data-data="${t.data||diaIso}" data-descricao="${t.descricao}" data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status}">Editar</button>
+        </li>`).join('')}</ul></div>`;
     }
 
-    function onToggleExpander(e) {
-      const btn = e.currentTarget;
-      const id = btn.dataset.expander;
-      const row = document.getElementById(id);
-      if (!row) return;
-      // usa getComputedStyle para estado real
-      const isHidden = window.getComputedStyle(row).display === 'none';
-      row.style.display = isHidden ? '' : 'none';
-      // atualiza seta/aria
-      btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-      const count = btn.dataset.count || '';
-      btn.textContent = (isHidden ? '▼ ' : '► ') + `${count} transação(ões)`;
-    }
+    function onToggleExpander(e){ const btn=e.currentTarget; const row=document.getElementById(btn.dataset.expander); const hidden=window.getComputedStyle(row).display==='none'; row.style.display=hidden?'':'none'; btn.textContent=(hidden?'▼ ':'► ')+btn.dataset.count+' transação(ões)'; }
 
-    async function onChangeStatus(e) {
-      const sel = e.currentTarget;
-      const novoStatus = sel.value;
-      if (!novoStatus) return;
+    async function onChangeStatus(e){ const sel=e.currentTarget; await patchTransacao(sel.dataset.id,{status:sel.value}); await consultar(); }
 
-      const original = sel.dataset.statusOriginal || 'cadastrada';
-      if (original === 'efetivada' && novoStatus !== 'efetivada') {
-        const ok = confirm('Esta transação já estava EFETIVADA. Tem certeza que deseja reverter o status?');
-        if (!ok) { sel.value = ''; return; }
-      }
+    async function patchTransacao(id,bodyObj){ const url=`${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`; await fetch(url,{method:'PATCH',headers,body:JSON.stringify(bodyObj)}); }
 
-      const isVirtual = sel.dataset.virtual === 'true';
-      if (isVirtual) {
-        try {
-          await materializar({
-            recorrencia_id: sel.dataset.recorrenciaId || sel.dataset.recorrencia_id,
-            conta_id:       sel.dataset.contaId || sel.dataset.conta_id,
-            data:           sel.dataset.data,
-            descricao:      sel.dataset.descricao,
-            tipo:           sel.dataset.tipo,
-            valor:          Number(sel.dataset.valor),
-            status:         novoStatus
-          });
-          await consultar();
-        } catch (err) {
-          alert('Não foi possível materializar a recorrência:\n' + err.message);
-        }
-        return;
-      }
+    async function criarTransacao(bodyObj){ const url=`${SUPABASE_URL}/rest/v1/transacoes`; await fetch(url,{method:'POST',headers,body:JSON.stringify(bodyObj)}); }
 
-      const id = sel.dataset.id;
-      try {
-        await patchTransacao(id, { status: novoStatus });
-        await consultar();
-      } catch (err) {
-        alert('Erro ao atualizar status:\n' + err.message);
-      }
-    }
-
-    // Modal (editar)
-    function openModal(state) {
-      modalState = state;
-      m_descricao.value = state.descricao || '';
-      m_tipo.value      = state.tipo || 'debito';
-      m_valor.value     = Number(state.valor || 0);
-      m_data.value      = (state.data || '').slice(0,10);
-      m_status.value    = state.status || 'cadastrada';
-
-      m_hint.textContent = state.virtual
-        ? 'Ocorrência virtual: ao salvar, será criada em public.transacoes com os valores acima.'
-        : (state.status === 'efetivada'
-            ? 'Atenção: você está editando uma transação EFETIVADA. Alterações exigem confirmação.'
-            : 'Edite livremente. Ao salvar, a transação será atualizada.');
-
-      document.getElementById('modal').style.display = 'flex';
-    }
-    function closeModal(){ document.getElementById('modal').style.display = 'none'; modalState = null; }
+    function openModal(state){ modalState=state; m_title.textContent=state.novo?'Nova Transação':'Edição de transação'; m_desc.value=state.descricao||''; m_tipo.value=state.tipo||'debito'; m_valor.value=state.valor||0; m_data.value=(state.data||new Date().toISOString().slice(0,10)); m_status.value=state.status||'cadastrada'; m_hint.textContent=state.novo?'Crie uma nova transação para esta conta.':'Edite a transação.'; $modal.style.display='flex'; }
+    function closeModal(){ $modal.style.display='none'; modalState=null; }
 
     document.getElementById('m_cancel').addEventListener('click', closeModal);
-
-    async function onEdit(e) {
-      const btn = e.currentTarget;
-      const state = {
-        virtual:        btn.dataset.virtual === 'true',
-        id:             btn.dataset.id || null,
-        recorrencia_id: btn.dataset.recorrenciaId || btn.dataset.recorrencia_id || null,
-        conta_id:       btn.dataset.contaId || btn.dataset.conta_id || null,
-        data:           btn.dataset.data,
-        descricao:      btn.dataset.descricao,
-        tipo:           btn.dataset.tipo,
-        valor:          Number(btn.dataset.valor),
-        status:         btn.dataset.status || 'cadastrada',
-        originalStatus: btn.dataset.status || 'cadastrada'
-      };
-      openModal(state);
-    }
-
-    document.getElementById('m_save').addEventListener('click', async () => {
-      if (!modalState) return;
-      const payload = {
-        descricao: m_descricao.value,
-        tipo: m_tipo.value,
-        valor: Number(m_valor.value),
-        data: m_data.value,
-        status: m_status.value
-      };
-
-      try {
-        if (modalState.originalStatus === 'efetivada' &&
-            (payload.status !== 'efetivada' ||
-             payload.valor !== modalState.valor ||
-             payload.data !== modalState.data ||
-             payload.descricao !== modalState.descricao)) {
-          const ok = confirm('Esta transação estava EFETIVADA. Confirmar alteração/reversão?');
-          if (!ok) return;
-        }
-
-        if (modalState.virtual) {
-          await materializar({
-            recorrencia_id: modalState.recorrencia_id,
-            conta_id:       modalState.conta_id,
-            data:           payload.data,
-            descricao:      payload.descricao,
-            tipo:           payload.tipo,
-            valor:          payload.valor,
-            status:         payload.status
-          });
-        } else {
-          await patchTransacao(modalState.id, payload);
-        }
-        closeModal();
-        await consultar();
-      } catch (err) {
-        alert('Erro ao salvar:\n' + err.message);
-      }
+    document.getElementById('m_save').addEventListener('click', async ()=>{ 
+      const payload={descricao:m_desc.value,tipo:m_tipo.value,valor:Number(m_valor.value),data:m_data.value,status:m_status.value,conta_id:$conta.value};
+      if(modalState.novo){ await criarTransacao(payload);} else { await patchTransacao(modalState.id,payload);} 
+      closeModal(); await consultar();
     });
 
-    async function patchTransacao(id, bodyObj) {
-      const url = `${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`;
-      const res = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(bodyObj) });
-      if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
-    }
+    async function onEdit(e){ const btn=e.currentTarget; openModal({novo:false,id:btn.dataset.id,descricao:btn.dataset.descricao,tipo:btn.dataset.tipo,valor:btn.dataset.valor,data:btn.dataset.data,status:btn.dataset.status}); }
 
-    async function materializar(bodyObj) {
-      const { recorrencia_id, conta_id, data } = bodyObj;
-      if (!recorrencia_id || !conta_id || !data) throw new Error('Campos necessários ausentes: recorrencia_id, conta_id, data.');
-      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
-      const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(bodyObj) });
-      if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
-    }
-
-    // Navegação de mês
-    $btnPrev.addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, -1); consultar(); });
-    $btnNext.addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, +1); consultar(); });
-    $btn.addEventListener('click', consultar);
-
-    // Inicialização
-    carregarContas();
-
-    // Fecha modal clicando fora
-    document.getElementById('modal').addEventListener('click', (e) => { if (e.target === document.getElementById('modal')) closeModal(); });
-  </script>
-</body>
-</html>
+    $btnPrev.addEventListener('click',()=>{ $mesRef.value=addMonthsYM($mesRef.value,-1); consultar(); });
+    $btnNext.addEventListener('click',()=>{ $mesRef.value=addMonthsYM($mesRef.value,+1); consultar(); });
+    $btn.add
