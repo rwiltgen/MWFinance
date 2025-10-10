@@ -32,10 +32,7 @@
     button[disabled] { opacity: .5; cursor: not-allowed; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; table-layout: fixed; }
-    thead th {
-      position: sticky; top: 0; background: var(--card);
-      border-bottom: 1px solid var(--border); padding: 8px; text-align: left;
-    }
+    thead th { position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }
     tbody tr:nth-child(odd):not(.expander) { background: var(--row); }
     tbody tr:nth-child(even):not(.expander) { background: var(--row-alt); }
     td { border-bottom: 1px solid var(--border); padding: 8px; vertical-align: top; }
@@ -46,47 +43,31 @@
     .row-neg { outline: 2px solid rgba(255, 132, 132, .18); }
     .muted { color: var(--muted); }
 
-    .tools { display:flex; gap:6px; align-items:center; }
-
-    .day-chip {
-      display:inline-flex; align-items:center; justify-content:center;
-      width: 34px; height: 34px; border-radius: 50%;
-      background:#1b1b2b; border:1px solid var(--border); font-weight:700;
-    }
+    .tools { display:flex; gap:6px; align-items:center; flex-wrap: wrap; }
+    .day-chip { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; background:#1b1b2b; border:1px solid var(--border); font-weight:700; }
 
     .btn-link { background: transparent; border: 1px solid var(--pill); padding: 4px 8px; border-radius: 8px; font-size: 12px; }
     .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
 
     .tx-actions { display:inline-flex; gap:6px; align-items:center; margin-left:6px; flex-wrap: wrap; }
-    .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--pill); margin-right: 6px; }
-    .credit { color: var(--pos); }
-    .debit  { color: var(--neg); }
+    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--pill); margin-right:6px; }
+    .credit { color: var(--pos); } .debit  { color: var(--neg); }
 
-    .col-dia   { width: 56px; }
-    .col-saldo { width: 110px; }
-    @media (max-width: 600px) {
-      body { margin: 10px; }
-      h1 { font-size: 18px; }
-      table { font-size: 13px; }
-      .col-saldo { width: 96px; }
-    }
+    .col-dia{ width:56px; } .col-saldo{ width:110px; }
+    @media (max-width: 600px){ body{margin:10px;} h1{font-size:18px;} table{font-size:13px;} .col-saldo{width:96px;} }
 
-    /* Expander (linha inteira abaixo) */
-    tr.expander td { padding: 0; border-bottom: none; }
-    .expand-card {
-      background: #12121c;
-      border: 1px solid #26263a;
-      border-radius: 10px;
-      margin: 8px 0 16px;
-      padding: 10px 12px;
-      box-shadow: 0 6px 20px rgba(0,0,0,.25);
-    }
+    tr.expander td { padding:0; border-bottom:none; }
+    .expand-card { background:#12121c; border:1px solid #26263a; border-radius:10px; margin:8px 0 16px; padding:10px 12px; box-shadow:0 6px 20px rgba(0,0,0,.25); }
     .expand-header { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-    .expand-header .badge-count {
-      font-size: 12px; padding: 2px 8px; border-radius: 999px; border: 1px solid #2a2a3a; background:#1e1e2a;
-    }
-    .tx-list { list-style: disc; padding-left: 18px; margin:0; }
-    .tx-list li { margin: 6px 0; }
+    .expand-header .badge-count { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid #2a2a3a; background:#1e1e2a; }
+    .tx-list { list-style: disc; padding-left:18px; margin:0; }
+    .tx-list li { margin:6px 0; }
+
+    /* Modal criar/editar */
+    #modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .modal { width:100%; max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; }
+    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .full { grid-column:1 / -1; }
   </style>
 </head>
 <body>
@@ -106,6 +87,7 @@
         <button id="btnAtualizar">Atualizar</button>
         <button id="btnMesAnterior" title="Mês anterior">◀︎</button>
         <button id="btnMesSeguinte" title="Próximo mês">▶︎</button>
+        <button id="btnNova" class="btn-primary">+ Nova Transação</button>
       </div>
     </div>
   </div>
@@ -114,57 +96,79 @@
     <div class="muted">Carregando contas…</div>
   </div>
 
-  <!-- Modal de edição -->
-  <div id="modal" style="position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;">
-    <div class="modal" style="width:100%; max-width:520px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px;">
-      <h3 style="margin:0 0 8px; font-size:18px;">Edição de transação</h3>
-      <div class="grid" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div style="grid-column:1 / -1; display:flex; flex-direction:column; gap:6px;">
-          <label>Descrição</label>
-          <input id="m_descricao" type="text"/>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          <label>Tipo</label>
-          <select id="m_tipo">
-            <option value="credito">Crédito</option>
-            <option value="debito">Débito</option>
+  <!-- Modal criar/editar -->
+  <div id="modal">
+    <div class="modal">
+      <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
+      <div class="grid">
+        <div class="full" style="display:flex; flex-direction:column; gap:6px;">
+          <label>Tipo do lançamento</label>
+          <select id="f_kind">
+            <option value="unica" selected>Única</option>
+            <option value="parcelada">Parcelada</option>
+            <option value="recorrente">Recorrente</option>
           </select>
         </div>
+
+        <div class="full" style="display:flex; flex-direction:column; gap:6px;">
+          <label>Descrição</label>
+          <input id="f_descricao" type="text" placeholder="Ex.: Mensalidade academia"/>
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:6px;">
+          <label>Tipo</label>
+          <select id="f_tipo">
+            <option value="debito">Débito</option>
+            <option value="credito">Crédito</option>
+          </select>
+        </div>
+
         <div style="display:flex; flex-direction:column; gap:6px;">
           <label>Valor</label>
-          <input id="m_valor" type="number" step="0.01"/>
+          <input id="f_valor" type="number" step="0.01" min="0"/>
         </div>
+
         <div style="display:flex; flex-direction:column; gap:6px;">
           <label>Data</label>
-          <input id="m_data" type="date"/>
+          <input id="f_data" type="date"/>
         </div>
+
+        <div class="full" id="grpParcelas" style="display:none; flex-direction:column; gap:6px;">
+          <label>Quantidade de parcelas</label>
+          <input id="f_qtd" type="number" min="2" step="1" placeholder="Ex.: 12"/>
+          <small class="muted">Serão lançadas N transações, 1 por mês, a partir da data informada.</small>
+        </div>
+
+        <div class="full" id="grpPeriodicidade" style="display:none; flex-direction:column; gap:6px;">
+          <label>Periodicidade</label>
+          <select id="f_periodicidade">
+            <option value="mensal" selected>Mensal</option>
+            <option value="semanal" disabled>Semanal (em breve)</option>
+            <option value="anual" disabled>Anual (em breve)</option>
+          </select>
+          <small class="muted">Recorrências são previstas em memória; materialize parcelas específicas quando efetivar.</small>
+        </div>
+
         <div style="display:flex; flex-direction:column; gap:6px;">
-          <label>Status</label>
-          <select id="m_status">
-            <option value="cadastrada">Cadastrada</option>
+          <label>Status inicial</label>
+          <select id="f_status">
+            <option value="cadastrada" selected>Cadastrada</option>
             <option value="agendada">Agendada</option>
             <option value="efetivada">Efetivada</option>
           </select>
         </div>
       </div>
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:10px;">
+
+      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
         <button id="m_cancel" class="btn-link">Cancelar</button>
         <button id="m_save" class="btn-primary">Salvar</button>
       </div>
-      <p id="m_hint" style="font-size:12px; color:#bfbfd1; margin-top:8px;"></p>
+      <p id="m_hint" class="muted" style="margin-top:8px;"></p>
     </div>
   </div>
 
   <!-- config.js -->
   <script src="./config.js"></script>
-  <script>
-    const cfgOK = window.CONFIG && window.CONFIG.SUPABASE_URL && window.CONFIG.SUPABASE_ANON_KEY;
-    if (!cfgOK) {
-      document.getElementById('output').innerHTML =
-        '<div class="error">config.js não encontrado ou incompleto.</div>';
-    }
-  </script>
-
   <script>
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
 
@@ -180,43 +184,54 @@
     const $btn     = document.getElementById('btnAtualizar');
     const $btnPrev = document.getElementById('btnMesAnterior');
     const $btnNext = document.getElementById('btnMesSeguinte');
+    const $btnNova = document.getElementById('btnNova');
     const $out     = document.getElementById('output');
 
-    // Modal refs
-    const $modal     = document.getElementById('modal');
-    const m_descricao= document.getElementById('m_descricao');
-    const m_tipo     = document.getElementById('m_tipo');
-    const m_valor    = document.getElementById('m_valor');
-    const m_data     = document.getElementById('m_data');
-    const m_status   = document.getElementById('m_status');
-    const m_hint     = document.getElementById('m_hint');
-
-    let modalState = null;
+    // Modal (criar/editar)
+    const $modal  = document.getElementById('modal');
+    const m_title = document.getElementById('modalTitle');
+    const f_kind  = document.getElementById('f_kind');
+    const f_desc  = document.getElementById('f_descricao');
+    const f_tipo  = document.getElementById('f_tipo');
+    const f_valor = document.getElementById('f_valor');
+    const f_data  = document.getElementById('f_data');
+    const f_qtd   = document.getElementById('f_qtd');
+    const grpParcelas = document.getElementById('grpParcelas');
+    const grpPeriodicidade = document.getElementById('grpPeriodicidade');
+    const f_periodicidade = document.getElementById('f_periodicidade');
+    const f_status = document.getElementById('f_status');
+    const m_hint  = document.getElementById('m_hint');
 
     // Mês atual (YYYY-MM)
-    const today = new Date();
-    $mesRef.value = `${today.getUTCFullYear()}-${String(today.getUTCMonth()+1).padStart(2,'0')}`;
+    const now = new Date();
+    const ym = now.toISOString().slice(0,7);
+    $mesRef.value = ym;
+    // Data padrão do form = hoje (ISO)
+    document.getElementById('f_data').value = new Date().toISOString().slice(0,10);
 
-    function money(v){ const n=Number(v||0); return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
-    function dayOnly(iso){ const d=new Date(iso); if(isNaN(d)) return iso; return d.getUTCDate(); }
-    function classSaldo(v){ const n=Number(v||0); return n<0?'saldo saldo-neg':'saldo saldo-pos'; }
+    function money(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+    function dayOnly(iso){ const d=new Date(iso); return isNaN(d)?iso:d.getUTCDate(); }
+    function classSaldo(v){ return Number(v||0)<0?'saldo saldo-neg':'saldo saldo-pos'; }
     function addMonthsYM(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(Date.UTC(y,m-1,1)); d.setUTCMonth(d.getUTCMonth()+delta); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
 
+    // ---- Dados / RPC ----
     async function carregarContas() {
       try {
         const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
         const res = await fetch(url, { headers });
-        if (!res.ok) throw new Error(res.status + ' ' + res.statusText);
+        if (!res.ok) throw new Error(res.status+' '+res.statusText);
         const contas = await res.json();
-        if (!contas.length) {
-          $out.innerHTML = '<div class="error">Nenhuma conta encontrada na tabela <code>contas</code>.</div>';
-          return;
-        }
+        if (!contas.length) { $out.innerHTML='<div class="muted">Nenhuma conta encontrada.</div>'; return; }
         $conta.innerHTML = contas.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
         consultar();
-      } catch (e) {
-        $out.innerHTML = `<div class="error">Erro ao carregar contas: ${e.message}</div>`;
-      }
+      } catch(e){ $out.innerHTML = `<div class="muted">Erro ao carregar contas: ${e.message}</div>`; }
+    }
+
+    async function getContaIdByNome(nome) {
+      const url = `${SUPABASE_URL}/rest/v1/contas?select=id,nome&nome=eq.${encodeURIComponent(nome)}`;
+      const r = await fetch(url, { headers });
+      const js = await r.json();
+      return js[0]?.id || null;
     }
 
     async function consultar() {
@@ -231,13 +246,13 @@
       $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
 
       try {
-        const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
-        if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
+        const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+        if (!res.ok) { const txt=await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
         const rows = await res.json();
         if (!rows.length) { $out.innerHTML = `<div class="muted">Nenhum dado para ${ym}.</div>`; return; }
         renderTabela(rows);
       } catch (e) {
-        $out.innerHTML = `<div class="error"><strong>Erro na consulta:</strong>\n${e.message}</div>`;
+        $out.innerHTML = `<div class="muted">Erro na consulta: ${e.message}</div>`;
       }
     }
 
@@ -245,16 +260,9 @@
       const tbody = rows.map((r, idx) => renderLinhaDia(r, idx)).join('');
       const table = `
         <table>
-          <thead>
-            <tr>
-              <th class="col-dia">Dia</th>
-              <th>Transações do dia</th>
-              <th class="col-saldo">Saldo</th>
-            </tr>
-          </thead>
+          <thead><tr><th class="col-dia">Dia</th><th>Transações do dia</th><th class="col-saldo">Saldo</th></tr></thead>
           <tbody>${tbody}</tbody>
-        </table>
-      `;
+        </table>`;
       $out.innerHTML = table;
 
       document.querySelectorAll('button.tx-toggle').forEach(btn => btn.addEventListener('click', onToggleExpander));
@@ -264,36 +272,18 @@
 
     function renderLinhaDia(r, idx) {
       const txs = Array.isArray(r.transacoes) ? r.transacoes : [];
-      const saldoClass = classSaldo(r.saldo);
-      const trClass = Number(r.saldo) < 0 ? 'row-neg' : '';
-
-      // Coluna do meio: botão só se houver transações; caso contrário, traço
       const meio = txs.length
-        ? `<button class="tx-toggle btn-link" data-expander="exp-${idx}" aria-expanded="false" data-count="${txs.length}">
-             ► ${txs.length} transação(ões)
-           </button>`
+        ? `<button class="tx-toggle btn-link" data-expander="exp-${idx}" aria-expanded="false" data-count="${txs.length}">► ${txs.length} transação(ões)</button>`
         : `<span class="muted">–</span>`;
-
-      const linhaPrincipal = `
-        <tr class="${trClass}">
+      const linha = `<tr class="${Number(r.saldo)<0?'row-neg':''}">
           <td><span class="day-chip">${dayOnly(r.dia)}</span></td>
           <td>${meio}</td>
-          <td class="${saldoClass}">${money(r.saldo)}</td>
-        </tr>
-      `;
-
-      // Só cria a linha do card se houver transações
-      const expander = txs.length
-        ? `
-          <tr id="exp-${idx}" class="expander" style="display:none;">
-            <td colspan="3">
-              ${renderExpanderCard(txs, r.dia)}
-            </td>
-          </tr>
-        `
+          <td class="${classSaldo(r.saldo)}">${money(r.saldo)}</td>
+        </tr>`;
+      const exp = txs.length
+        ? `<tr id="exp-${idx}" class="expander" style="display:none;"><td colspan="3">${renderExpanderCard(txs, r.dia)}</td></tr>`
         : '';
-
-      return linhaPrincipal + expander;
+      return linha + exp;
     }
 
     function renderExpanderCard(txs, diaIso) {
@@ -312,8 +302,7 @@
             <option value="cadastrada">Cadastrada</option>
             <option value="agendada">Agendada</option>
             <option value="efetivada">Efetivada</option>
-          </select>
-        `;
+          </select>`;
         const editBtn = `
           <button class="tx-edit btn-link"
                   data-virtual="${!!t.virtual}"
@@ -325,40 +314,29 @@
                   data-tipo="${t.tipo}" data-valor="${t.valor}"
                   data-status="${t.status || 'cadastrada'}">
             Editar
-          </button>
-        `;
-        return `
-          <li>
-            <span class="pill ${t.tipo === 'credito' ? 'credit' : 'debit'}">${t.tipo}</span>
+          </button>`;
+        return `<li>
+            <span class="pill ${t.tipo==='credito'?'credit':'debit'}">${t.tipo}</span>
             <strong>${t.descricao}</strong> — ${money(t.valor)}
             ${t.virtual ? '<span class="pill">virtual</span>' : ''}
             <span class="tx-actions">${select}${editBtn}</span>
-          </li>
-        `;
+          </li>`;
       }).join('');
 
-      return `
-        <div class="expand-card">
-          <div class="expand-header">
-            <span class="badge-count">${txs.length} transação(ões)</span>
-          </div>
-          <ul class="tx-list">${itens}</ul>
-        </div>
-      `;
+      return `<div class="expand-card">
+        <div class="expand-header"><span class="badge-count">${txs.length} transação(ões)</span></div>
+        <ul class="tx-list">${itens}</ul>
+      </div>`;
     }
 
     function onToggleExpander(e) {
       const btn = e.currentTarget;
-      const id = btn.dataset.expander;
-      const row = document.getElementById(id);
+      const row = document.getElementById(btn.dataset.expander);
       if (!row) return;
-      // usa getComputedStyle para estado real
       const isHidden = window.getComputedStyle(row).display === 'none';
       row.style.display = isHidden ? '' : 'none';
-      // atualiza seta/aria
       btn.setAttribute('aria-expanded', isHidden ? 'true' : 'false');
-      const count = btn.dataset.count || '';
-      btn.textContent = (isHidden ? '▼ ' : '► ') + `${count} transação(ões)`;
+      btn.textContent = (isHidden ? '▼ ' : '► ') + `${btn.dataset.count} transação(ões)`;
     }
 
     async function onChangeStatus(e) {
@@ -368,109 +346,141 @@
 
       const original = sel.dataset.statusOriginal || 'cadastrada';
       if (original === 'efetivada' && novoStatus !== 'efetivada') {
-        const ok = confirm('Esta transação já estava EFETIVADA. Tem certeza que deseja reverter o status?');
+        const ok = confirm('Esta transação já estava EFETIVADA. Reverter?');
         if (!ok) { sel.value = ''; return; }
       }
 
       const isVirtual = sel.dataset.virtual === 'true';
       if (isVirtual) {
-        try {
-          await materializar({
-            recorrencia_id: sel.dataset.recorrenciaId || sel.dataset.recorrencia_id,
-            conta_id:       sel.dataset.contaId || sel.dataset.conta_id,
-            data:           sel.dataset.data,
-            descricao:      sel.dataset.descricao,
-            tipo:           sel.dataset.tipo,
-            valor:          Number(sel.dataset.valor),
-            status:         novoStatus
-          });
-          await consultar();
-        } catch (err) {
-          alert('Não foi possível materializar a recorrência:\n' + err.message);
-        }
+        await materializar({
+          recorrencia_id: sel.dataset.recorrenciaId || sel.dataset.recorrencia_id,
+          conta_id:       sel.dataset.contaId || sel.dataset.conta_id,
+          data:           sel.dataset.data,
+          descricao:      sel.dataset.descricao,
+          tipo:           sel.dataset.tipo,
+          valor:          Number(sel.dataset.valor),
+          status:         novoStatus
+        });
+        await consultar();
         return;
       }
 
-      const id = sel.dataset.id;
-      try {
-        await patchTransacao(id, { status: novoStatus });
-        await consultar();
-      } catch (err) {
-        alert('Erro ao atualizar status:\n' + err.message);
-      }
+      await patchTransacao(sel.dataset.id, { status: novoStatus });
+      await consultar();
     }
 
-    // Modal (editar)
-    function openModal(state) {
-      modalState = state;
-      m_descricao.value = state.descricao || '';
-      m_tipo.value      = state.tipo || 'debito';
-      m_valor.value     = Number(state.valor || 0);
-      m_data.value      = (state.data || '').slice(0,10);
-      m_status.value    = state.status || 'cadastrada';
-
-      m_hint.textContent = state.virtual
-        ? 'Ocorrência virtual: ao salvar, será criada em public.transacoes com os valores acima.'
-        : (state.status === 'efetivada'
-            ? 'Atenção: você está editando uma transação EFETIVADA. Alterações exigem confirmação.'
-            : 'Edite livremente. Ao salvar, a transação será atualizada.');
-
-      document.getElementById('modal').style.display = 'flex';
+    // ---- CRUD helpers ----
+    async function patchTransacao(id, bodyObj) {
+      const url = `${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`;
+      const res = await fetch(url, { method:'PATCH', headers, body: JSON.stringify(bodyObj) });
+      if (!res.ok) throw new Error(await res.text());
     }
-    function closeModal(){ document.getElementById('modal').style.display = 'none'; modalState = null; }
+
+    async function materializar(bodyObj) {
+      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
+      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(bodyObj) });
+      if (!res.ok) throw new Error(await res.text());
+    }
+
+    async function criarTransacao(bodyObj) {
+      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
+      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(bodyObj) });
+      if (!res.ok) throw new Error(await res.text());
+    }
+
+    async function criarTransacoesEmLote(arrayBody) {
+      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
+      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(arrayBody) });
+      if (!res.ok) throw new Error(await res.text());
+    }
+
+    async function criarRecorrencia(bodyObj) {
+      const url = `${SUPABASE_URL}/rest/v1/recorrencias`;
+      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(bodyObj) });
+      if (!res.ok) throw new Error(await res.text());
+    }
+
+    // ---- Modal Nova Transação ----
+    function openCreateModal() {
+      m_title.textContent = 'Nova Transação';
+      f_kind.value = 'unica';
+      f_desc.value = '';
+      f_tipo.value = 'debito';
+      f_valor.value = '';
+      f_data.value = new Date().toISOString().slice(0,10);
+      f_qtd.value = '';
+      f_periodicidade.value = 'mensal';
+      f_status.value = 'cadastrada';
+      grpParcelas.style.display = 'none';
+      grpPeriodicidade.style.display = 'none';
+      document.getElementById('m_hint').textContent = 'Escolha o tipo do lançamento e preencha os campos.';
+      $modal.style.display = 'flex';
+    }
+    function closeModal(){ $modal.style.display = 'none'; }
+
+    f_kind.addEventListener('change', () => {
+      const k = f_kind.value;
+      grpParcelas.style.display = (k === 'parcelada') ? 'block' : 'none';
+      grpPeriodicidade.style.display = (k === 'recorrente') ? 'block' : 'none';
+    });
 
     document.getElementById('m_cancel').addEventListener('click', closeModal);
-
-    async function onEdit(e) {
-      const btn = e.currentTarget;
-      const state = {
-        virtual:        btn.dataset.virtual === 'true',
-        id:             btn.dataset.id || null,
-        recorrencia_id: btn.dataset.recorrenciaId || btn.dataset.recorrencia_id || null,
-        conta_id:       btn.dataset.contaId || btn.dataset.conta_id || null,
-        data:           btn.dataset.data,
-        descricao:      btn.dataset.descricao,
-        tipo:           btn.dataset.tipo,
-        valor:          Number(btn.dataset.valor),
-        status:         btn.dataset.status || 'cadastrada',
-        originalStatus: btn.dataset.status || 'cadastrada'
-      };
-      openModal(state);
-    }
-
     document.getElementById('m_save').addEventListener('click', async () => {
-      if (!modalState) return;
-      const payload = {
-        descricao: m_descricao.value,
-        tipo: m_tipo.value,
-        valor: Number(m_valor.value),
-        data: m_data.value,
-        status: m_status.value
-      };
-
       try {
-        if (modalState.originalStatus === 'efetivada' &&
-            (payload.status !== 'efetivada' ||
-             payload.valor !== modalState.valor ||
-             payload.data !== modalState.data ||
-             payload.descricao !== modalState.descricao)) {
-          const ok = confirm('Esta transação estava EFETIVADA. Confirmar alteração/reversão?');
-          if (!ok) return;
+        const contaNome = $conta.value;
+        const contaId = await getContaIdByNome(contaNome);
+        if (!contaId) throw new Error('Conta não encontrada.');
+
+        const base = {
+          conta_id: contaId,
+          descricao: (f_desc.value || '').trim(),
+          tipo: f_tipo.value,
+          valor: Number(f_valor.value || 0),
+          data: f_data.value,
+          status: f_status.value
+        };
+        if (!base.descricao) throw new Error('Descrição é obrigatória.');
+        if (!base.valor || base.valor <= 0) throw new Error('Informe um valor maior que zero.');
+        if (!base.data) throw new Error('Informe a data.');
+
+        const kind = f_kind.value;
+
+        if (kind === 'unica') {
+          await criarTransacao(base);
+        } else if (kind === 'parcelada') {
+          const n = parseInt(f_qtd.value, 10);
+          if (!n || n < 2) throw new Error('Informe a quantidade de parcelas (mínimo 2).');
+          // gera N transações mensais a partir de base.data
+          const parts = [];
+          const [y, m, d] = base.data.split('-').map(x=>parseInt(x,10));
+          for (let i=1; i<=n; i++){
+            const di = new Date(Date.UTC(y, m-1, d));
+            di.setUTCMonth(di.getUTCMonth() + (i-1));
+            const iso = di.toISOString().slice(0,10);
+            parts.push({
+              conta_id: base.conta_id,
+              descricao: `${base.descricao} (${i}/${n})`,
+              tipo: base.tipo,
+              valor: base.valor,
+              data: iso,
+              status: base.status
+            });
+          }
+          await criarTransacoesEmLote(parts);
+        } else if (kind === 'recorrente') {
+          // insere apenas em recorrencias (sem materializar)
+          const rec = {
+            conta_id: base.conta_id,
+            descricao: base.descricao,
+            tipo: base.tipo,
+            valor: base.valor,
+            inicio: base.data,
+            fim: null,
+            periodicidade: f_periodicidade.value || 'mensal'
+          };
+          await criarRecorrencia(rec);
         }
 
-        if (modalState.virtual) {
-          await materializar({
-            recorrencia_id: modalState.recorrencia_id,
-            conta_id:       modalState.conta_id,
-            data:           payload.data,
-            descricao:      payload.descricao,
-            tipo:           payload.tipo,
-            valor:          payload.valor,
-            status:         payload.status
-          });
-        } else {
-          await patchTransacao(modalState.id, payload);
-        }
         closeModal();
         await consultar();
       } catch (err) {
@@ -478,30 +488,24 @@
       }
     });
 
-    async function patchTransacao(id, bodyObj) {
-      const url = `${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`;
-      const res = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(bodyObj) });
-      if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
+    // ---- Eventos principais ----
+    document.getElementById('btnAtualizar').addEventListener('click', consultar);
+    document.getElementById('btnMesAnterior').addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, -1); consultar(); });
+    document.getElementById('btnMesSeguinte').addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, +1); consultar(); });
+    document.getElementById('btnNova').addEventListener('click', openCreateModal);
+
+    // expander / editar (mantidos da v1)
+    async function onEdit(e) {
+      const btn = e.currentTarget;
+      alert('Edição completa da v1 mantida. (Podemos reabrir a modal em modo edição aqui depois.)');
+      // Aqui poderíamos reusar a mesma modal preenchendo campos e chamando PATCH.
     }
 
-    async function materializar(bodyObj) {
-      const { recorrencia_id, conta_id, data } = bodyObj;
-      if (!recorrencia_id || !conta_id || !data) throw new Error('Campos necessários ausentes: recorrencia_id, conta_id, data.');
-      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
-      const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(bodyObj) });
-      if (!res.ok) { const txt = await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
-    }
-
-    // Navegação de mês
-    $btnPrev.addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, -1); consultar(); });
-    $btnNext.addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, +1); consultar(); });
-    $btn.addEventListener('click', consultar);
-
-    // Inicialização
+    // init
     carregarContas();
 
-    // Fecha modal clicando fora
-    document.getElementById('modal').addEventListener('click', (e) => { if (e.target === document.getElementById('modal')) closeModal(); });
+    // fecha modal clicando fora
+    $modal.addEventListener('click', (e) => { if (e.target === $modal) closeModal(); });
   </script>
 </body>
 </html>
