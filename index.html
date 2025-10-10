@@ -47,6 +47,7 @@
     .day-chip { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; background:#1b1b2b; border:1px solid var(--border); font-weight:700; }
 
     .btn-link { background: transparent; border: 1px solid var(--pill); padding: 4px 8px; border-radius: 8px; font-size: 12px; }
+    .btn-danger { background: transparent; border: 1px solid #6a2a2a; color:#ff9b9b; padding: 4px 8px; border-radius: 8px; font-size: 12px; }
     .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
 
     .tx-actions { display:inline-flex; gap:6px; align-items:center; margin-left:6px; flex-wrap: wrap; }
@@ -63,7 +64,6 @@
     .tx-list { list-style: disc; padding-left:18px; margin:0; }
     .tx-list li { margin:6px 0; }
 
-    /* Modal criar/editar */
     #modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000; }
     .modal { width:100%; max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; }
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -96,7 +96,7 @@
     <div class="muted">Carregando contas…</div>
   </div>
 
-  <!-- Modal criar/editar -->
+  <!-- Modal criar -->
   <div id="modal">
     <div class="modal">
       <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
@@ -187,7 +187,6 @@
     const $btnNova = document.getElementById('btnNova');
     const $out     = document.getElementById('output');
 
-    // Modal (criar/editar)
     const $modal  = document.getElementById('modal');
     const m_title = document.getElementById('modalTitle');
     const f_kind  = document.getElementById('f_kind');
@@ -202,19 +201,16 @@
     const f_status = document.getElementById('f_status');
     const m_hint  = document.getElementById('m_hint');
 
-    // Mês atual (YYYY-MM)
+    // mês atual e data padrão
     const now = new Date();
-    const ym = now.toISOString().slice(0,7);
-    $mesRef.value = ym;
-    // Data padrão do form = hoje (ISO)
-    document.getElementById('f_data').value = new Date().toISOString().slice(0,10);
+    $mesRef.value = now.toISOString().slice(0,7);
+    f_data.value = new Date().toISOString().slice(0,10);
 
     function money(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
     function dayOnly(iso){ const d=new Date(iso); return isNaN(d)?iso:d.getUTCDate(); }
     function classSaldo(v){ return Number(v||0)<0?'saldo saldo-neg':'saldo saldo-pos'; }
     function addMonthsYM(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(Date.UTC(y,m-1,1)); d.setUTCMonth(d.getUTCMonth()+delta); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
 
-    // ---- Dados / RPC ----
     async function carregarContas() {
       try {
         const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
@@ -235,18 +231,15 @@
     }
 
     async function consultar() {
-      const conta = $conta.value;
-      const ym    = $mesRef.value;
+      const conta = $conta.value, ym = $mesRef.value;
       if (!conta || !ym) { $out.innerHTML = `<div>Selecione conta e mês.</div>`; return; }
 
       const referencia = ym + '-01';
       const url = `${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
-      const body = { conta_nome: conta, referencia };
-
       $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
 
       try {
-        const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(body) });
+        const res = await fetch(url, { method:'POST', headers, body: JSON.stringify({ conta_nome: conta, referencia }) });
         if (!res.ok) { const txt=await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
         const rows = await res.json();
         if (!rows.length) { $out.innerHTML = `<div class="muted">Nenhum dado para ${ym}.</div>`; return; }
@@ -268,6 +261,8 @@
       document.querySelectorAll('button.tx-toggle').forEach(btn => btn.addEventListener('click', onToggleExpander));
       document.querySelectorAll('select.tx-status').forEach(sel => sel.addEventListener('change', onChangeStatus));
       document.querySelectorAll('button.tx-edit').forEach(btn => btn.addEventListener('click', onEdit));
+      document.querySelectorAll('button.tx-del').forEach(btn => btn.addEventListener('click', onDeleteTx));
+      document.querySelectorAll('button.tx-del-rec').forEach(btn => btn.addEventListener('click', onDeleteRec));
     }
 
     function renderLinhaDia(r, idx) {
@@ -303,6 +298,7 @@
             <option value="agendada">Agendada</option>
             <option value="efetivada">Efetivada</option>
           </select>`;
+
         const editBtn = `
           <button class="tx-edit btn-link"
                   data-virtual="${!!t.virtual}"
@@ -315,11 +311,16 @@
                   data-status="${t.status || 'cadastrada'}">
             Editar
           </button>`;
+
+        const delBtn = t.virtual
+          ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}">Excluir recorrência</button>`
+          : `<button class="tx-del btn-danger" data-id="${t.id}">Excluir</button>`;
+
         return `<li>
             <span class="pill ${t.tipo==='credito'?'credit':'debit'}">${t.tipo}</span>
             <strong>${t.descricao}</strong> — ${money(t.valor)}
             ${t.virtual ? '<span class="pill">virtual</span>' : ''}
-            <span class="tx-actions">${select}${editBtn}</span>
+            <span class="tx-actions">${select}${editBtn}${delBtn}</span>
           </li>`;
       }).join('');
 
@@ -369,38 +370,29 @@
       await consultar();
     }
 
-    // ---- CRUD helpers ----
+    // CRUD helpers
     async function patchTransacao(id, bodyObj) {
       const url = `${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`;
       const res = await fetch(url, { method:'PATCH', headers, body: JSON.stringify(bodyObj) });
       if (!res.ok) throw new Error(await res.text());
     }
-
     async function materializar(bodyObj) {
       const url = `${SUPABASE_URL}/rest/v1/transacoes`;
       const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(bodyObj) });
       if (!res.ok) throw new Error(await res.text());
     }
-
-    async function criarTransacao(bodyObj) {
-      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
-      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(bodyObj) });
+    async function deleteTransacao(id) {
+      const url = `${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`;
+      const res = await fetch(url, { method:'DELETE', headers });
+      if (!res.ok) throw new Error(await res.text());
+    }
+    async function deleteRecorrencia(id) {
+      const url = `${SUPABASE_URL}/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`;
+      const res = await fetch(url, { method:'DELETE', headers });
       if (!res.ok) throw new Error(await res.text());
     }
 
-    async function criarTransacoesEmLote(arrayBody) {
-      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
-      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(arrayBody) });
-      if (!res.ok) throw new Error(await res.text());
-    }
-
-    async function criarRecorrencia(bodyObj) {
-      const url = `${SUPABASE_URL}/rest/v1/recorrencias`;
-      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(bodyObj) });
-      if (!res.ok) throw new Error(await res.text());
-    }
-
-    // ---- Modal Nova Transação ----
+    // Modal criar
     function openCreateModal() {
       m_title.textContent = 'Nova Transação';
       f_kind.value = 'unica';
@@ -413,7 +405,7 @@
       f_status.value = 'cadastrada';
       grpParcelas.style.display = 'none';
       grpPeriodicidade.style.display = 'none';
-      document.getElementById('m_hint').textContent = 'Escolha o tipo do lançamento e preencha os campos.';
+      m_hint.textContent = 'Escolha o tipo do lançamento e preencha os campos.';
       $modal.style.display = 'flex';
     }
     function closeModal(){ $modal.style.display = 'none'; }
@@ -446,29 +438,27 @@
         const kind = f_kind.value;
 
         if (kind === 'unica') {
-          await criarTransacao(base);
+          await materializar(base);
         } else if (kind === 'parcelada') {
           const n = parseInt(f_qtd.value, 10);
           if (!n || n < 2) throw new Error('Informe a quantidade de parcelas (mínimo 2).');
-          // gera N transações mensais a partir de base.data
-          const parts = [];
           const [y, m, d] = base.data.split('-').map(x=>parseInt(x,10));
+          const parts = [];
           for (let i=1; i<=n; i++){
-            const di = new Date(Date.UTC(y, m-1, d));
-            di.setUTCMonth(di.getUTCMonth() + (i-1));
-            const iso = di.toISOString().slice(0,10);
+            const di = new Date(Date.UTC(y, m-1, d)); di.setUTCMonth(di.getUTCMonth() + (i-1));
             parts.push({
               conta_id: base.conta_id,
               descricao: `${base.descricao} (${i}/${n})`,
               tipo: base.tipo,
               valor: base.valor,
-              data: iso,
+              data: di.toISOString().slice(0,10),
               status: base.status
             });
           }
-          await criarTransacoesEmLote(parts);
+          const url = `${SUPABASE_URL}/rest/v1/transacoes`;
+          const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(parts) });
+          if (!res.ok) throw new Error(await res.text());
         } else if (kind === 'recorrente') {
-          // insere apenas em recorrencias (sem materializar)
           const rec = {
             conta_id: base.conta_id,
             descricao: base.descricao,
@@ -478,7 +468,9 @@
             fim: null,
             periodicidade: f_periodicidade.value || 'mensal'
           };
-          await criarRecorrencia(rec);
+          const url = `${SUPABASE_URL}/rest/v1/recorrencias`;
+          const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(rec) });
+          if (!res.ok) throw new Error(await res.text());
         }
 
         closeModal();
@@ -488,23 +480,32 @@
       }
     });
 
-    // ---- Eventos principais ----
+    // handlers de exclusão
+    async function onDeleteTx(e){
+      const id = e.currentTarget.dataset.id;
+      if (!id) return;
+      if (!confirm('Excluir esta transação?')) return;
+      try { await deleteTransacao(id); await consultar(); }
+      catch(err){ alert('Erro ao excluir:\n' + err.message); }
+    }
+    async function onDeleteRec(e){
+      const rid = e.currentTarget.dataset.recorrenciaId;
+      if (!rid) return;
+      if (!confirm('Excluir esta recorrência (todas as futuras previsões)?')) return;
+      try { await deleteRecorrencia(rid); await consultar(); }
+      catch(err){ alert('Erro ao excluir recorrência:\n' + err.message); }
+    }
+
+    // editar (placeholder: podemos reusar a mesma modal depois)
+    async function onEdit(){ alert('Edição detalhada permanece como na v1. Podemos reusar esta modal para edição depois.'); }
+
+    // navegação / inicialização
     document.getElementById('btnAtualizar').addEventListener('click', consultar);
     document.getElementById('btnMesAnterior').addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, -1); consultar(); });
     document.getElementById('btnMesSeguinte').addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, +1); consultar(); });
-    document.getElementById('btnNova').addEventListener('click', openCreateModal);
+    document.getElementById('btnNova').addEventListener('click', () => { openCreateModal(); });
 
-    // expander / editar (mantidos da v1)
-    async function onEdit(e) {
-      const btn = e.currentTarget;
-      alert('Edição completa da v1 mantida. (Podemos reabrir a modal em modo edição aqui depois.)');
-      // Aqui poderíamos reusar a mesma modal preenchendo campos e chamando PATCH.
-    }
-
-    // init
     carregarContas();
-
-    // fecha modal clicando fora
     $modal.addEventListener('click', (e) => { if (e.target === $modal) closeModal(); });
   </script>
 </body>
