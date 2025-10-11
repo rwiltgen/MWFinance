@@ -2,161 +2,157 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — Saldos Diários</title>
+  <title>MWFinance — Saldos Diários (com Login)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
-      --bg: #0b0b10;
-      --card: #141421;
-      --muted: #a8a8b3;
-      --border: #2c2c3f;
-      --row: #11111a;
-      --row-alt: #0f0f18;
-      --pos: #75e39a;
-      --neg: #ff8484;
-      --pill: #2a2a3a;
-      --shadow: rgba(0,0,0,.35);
-      --accent: #3c7cff;
+      --bg: #0b0b10; --card:#141421; --muted:#a8a8b3; --border:#2c2c3f;
+      --row:#11111a; --row-alt:#0f0f18; --pos:#75e39a; --neg:#ff8484;
+      --pill:#2a2a3a; --shadow:rgba(0,0,0,.35); --accent:#3c7cff;
     }
-    * { box-sizing: border-box; }
-    body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 16px; background: var(--bg); color: #eaeaea; }
-    h1 { margin: 0 0 8px; font-size: 20px; }
+    *{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:#eaeaea}
+    h1{margin:0 0 8px;font-size:20px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px var(--shadow)}
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+    label{font-size:13px;opacity:.9}
+    input,select,button{background:#1b1b2b;color:#eaeaea;border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:14px}
+    button{cursor:pointer;font-weight:600} button[disabled]{opacity:.5;cursor:not-allowed}
+    .btn-link{background:transparent;border:1px solid var(--pill);padding:6px 10px;border-radius:10px}
+    .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+    .btn-danger{background:transparent;border:1px solid #6a2a2a;color:#ff9b9b;padding:6px 10px;border-radius:10px}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;table-layout:fixed}
+    thead th{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);padding:8px;text-align:left}
+    tbody tr:nth-child(odd):not(.expander){background:var(--row)}
+    tbody tr:nth-child(even):not(.expander){background:var(--row-alt)}
+    td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
+    .saldo{font-weight:700;text-align:right;white-space:nowrap}
+    .saldo-pos{color:var(--pos)} .saldo-neg{color:var(--neg)} .row-neg{outline:2px solid rgba(255,132,132,.18)}
+    .muted{color:var(--muted)} .tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .day-chip{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#1b1b2b;border:1px solid var(--border);font-weight:700}
+    tr.expander td{padding:0;border-bottom:none}
+    .expand-card{background:#12121c;border:1px solid #26263a;border-radius:10px;margin:8px 0 16px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+    .tx-list{list-style:disc;padding-left:18px;margin:0} .tx-list li{margin:6px 0}
+    .col-dia{width:56px} .col-saldo{width:110px}
+    @media (max-width:600px){body{margin:10px} h1{font-size:18px} table{font-size:13px} .col-saldo{width:96px}}
 
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px; margin-bottom: 12px; box-shadow: 0 6px 24px var(--shadow); }
-    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
-    label { font-size: 13px; opacity: .9; }
-    input, select, button {
-      background: #1b1b2b; color: #eaeaea; border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px; font-size: 14px;
-    }
-    button { cursor: pointer; font-weight: 600; }
-    button[disabled] { opacity: .5; cursor: not-allowed; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 14px; table-layout: fixed; }
-    thead th { position: sticky; top: 0; background: var(--card); border-bottom: 1px solid var(--border); padding: 8px; text-align: left; }
-    tbody tr:nth-child(odd):not(.expander) { background: var(--row); }
-    tbody tr:nth-child(even):not(.expander) { background: var(--row-alt); }
-    td { border-bottom: 1px solid var(--border); padding: 8px; vertical-align: top; }
-
-    .saldo { font-weight: 700; text-align: right; white-space: nowrap; }
-    .saldo-pos { color: var(--pos); }
-    .saldo-neg { color: var(--neg); }
-    .row-neg { outline: 2px solid rgba(255, 132, 132, .18); }
-    .muted { color: var(--muted); }
-
-    .tools { display:flex; gap:6px; align-items:center; flex-wrap: wrap; }
-    .day-chip { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; background:#1b1b2b; border:1px solid var(--border); font-weight:700; }
-
-    .btn-link { background: transparent; border: 1px solid var(--pill); padding: 4px 8px; border-radius: 8px; font-size: 12px; }
-    .btn-danger { background: transparent; border: 1px solid #6a2a2a; color:#ff9b9b; padding: 4px 8px; border-radius: 8px; font-size: 12px; }
-    .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
-
-    .tx-actions { display:inline-flex; gap:6px; align-items:center; margin-left:6px; flex-wrap: wrap; }
-    .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-size:12px; border:1px solid var(--pill); margin-right:6px; }
-    .credit { color: var(--pos); } .debit  { color: var(--neg); }
-
-    .col-dia{ width:56px; } .col-saldo{ width:110px; }
-    @media (max-width: 600px){ body{margin:10px;} h1{font-size:18px;} table{font-size:13px;} .col-saldo{width:96px;} }
-
-    tr.expander td { padding:0; border-bottom:none; }
-    .expand-card { background:#12121c; border:1px solid #26263a; border-radius:10px; margin:8px 0 16px; padding:10px 12px; box-shadow:0 6px 20px rgba(0,0,0,.25); }
-    .expand-header { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
-    .expand-header .badge-count { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid #2a2a3a; background:#1e1e2a; }
-    .tx-list { list-style: disc; padding-left:18px; margin:0; }
-    .tx-list li { margin:6px 0; }
-
-    #modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000; }
-    .modal { width:100%; max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; }
-    .grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    .full { grid-column:1 / -1; }
+    /* Auth card */
+    .auth {max-width:460px;margin:50px auto}
+    .split {display:flex;justify-content:space-between;align-items:center}
+    .hidden{display:none}
   </style>
 </head>
 <body>
   <h1>MWFinance — Saldos Diários</h1>
 
-  <div class="card">
-    <div class="row">
+  <!-- Barra do usuário -->
+  <div id="userBar" class="card hidden">
+    <div class="split">
+      <div id="userInfo" class="muted">—</div>
       <div>
-        <label for="conta">Conta</label><br/>
-        <select id="conta"></select>
-      </div>
-      <div>
-        <label for="mesRef">Mês</label><br/>
-        <input id="mesRef" type="month"/>
-      </div>
-      <div class="tools" style="align-self:flex-end;">
-        <button id="btnAtualizar">Atualizar</button>
-        <button id="btnMesAnterior" title="Mês anterior">◀︎</button>
-        <button id="btnMesSeguinte" title="Próximo mês">▶︎</button>
-        <button id="btnNova" class="btn-primary">+ Nova Transação</button>
+        <button id="btnLogout" class="btn-link">Sair</button>
       </div>
     </div>
   </div>
 
-  <div id="output" class="card">
-    <div class="muted">Carregando contas…</div>
+  <!-- Tela de Login -->
+  <div id="authView" class="card auth">
+    <h3 style="margin-top:0">Entrar</h3>
+    <div class="row" style="flex-direction:column; align-items:stretch;">
+      <label>E-mail</label>
+      <input id="email" type="email" placeholder="voce@exemplo.com"/>
+
+      <label>Senha</label>
+      <input id="password" type="password" placeholder="••••••••"/>
+
+      <div class="row" style="gap:8px; margin-top:8px;">
+        <button id="btnLogin" class="btn-primary">Entrar</button>
+        <button id="btnSignup" class="btn-link">Criar conta</button>
+      </div>
+
+      <div style="text-align:center; margin:12px 0;" class="muted">ou</div>
+      <button id="btnGoogle" class="btn-link">Entrar com Google</button>
+    </div>
+    <p id="authMsg" class="muted" style="margin-top:8px;"></p>
   </div>
 
-  <!-- Modal criar -->
-  <div id="modal">
-    <div class="modal">
+  <!-- App (só aparece logado) -->
+  <div id="appView" class="hidden">
+    <div class="card">
+      <div class="row">
+        <div>
+          <label for="conta">Conta</label><br/>
+          <select id="conta"></select>
+        </div>
+        <div>
+          <label for="mesRef">Mês</label><br/>
+          <input id="mesRef" type="month"/>
+        </div>
+        <div class="tools" style="align-self:flex-end;">
+          <button id="btnAtualizar">Atualizar</button>
+          <button id="btnMesAnterior" title="Mês anterior">◀︎</button>
+          <button id="btnMesSeguinte" title="Próximo mês">▶︎</button>
+          <button id="btnNova" class="btn-primary">+ Nova Transação</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="output" class="card">
+      <div class="muted">Carregando…</div>
+    </div>
+  </div>
+
+  <!-- Modal Nova Transação (igual à sua v2 já aprovada) -->
+  <div id="modal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000;">
+    <div class="modal" style="width:100%; max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px;">
       <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
-      <div class="grid">
-        <div class="full" style="display:flex; flex-direction:column; gap:6px;">
-          <label>Tipo do lançamento</label>
-          <select id="f_kind">
-            <option value="unica" selected>Única</option>
-            <option value="parcelada">Parcelada</option>
-            <option value="recorrente">Recorrente</option>
-          </select>
+      <div class="row" style="flex-direction:column; align-items:stretch;">
+        <label>Tipo do lançamento</label>
+        <select id="f_kind">
+          <option value="unica" selected>Única</option>
+          <option value="parcelada">Parcelada</option>
+          <option value="recorrente">Recorrente</option>
+        </select>
+
+        <label>Descrição</label>
+        <input id="f_descricao" type="text" placeholder="Ex.: Mensalidade academia"/>
+
+        <div class="row" style="gap:10px;">
+          <div style="flex:1">
+            <label>Tipo</label>
+            <select id="f_tipo">
+              <option value="debito">Débito</option>
+              <option value="credito">Crédito</option>
+            </select>
+          </div>
+          <div style="flex:1">
+            <label>Valor</label>
+            <input id="f_valor" type="number" step="0.01" min="0"/>
+          </div>
         </div>
 
-        <div class="full" style="display:flex; flex-direction:column; gap:6px;">
-          <label>Descrição</label>
-          <input id="f_descricao" type="text" placeholder="Ex.: Mensalidade academia"/>
-        </div>
+        <label>Data</label>
+        <input id="f_data" type="date"/>
 
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          <label>Tipo</label>
-          <select id="f_tipo">
-            <option value="debito">Débito</option>
-            <option value="credito">Crédito</option>
-          </select>
-        </div>
-
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          <label>Valor</label>
-          <input id="f_valor" type="number" step="0.01" min="0"/>
-        </div>
-
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          <label>Data</label>
-          <input id="f_data" type="date"/>
-        </div>
-
-        <div class="full" id="grpParcelas" style="display:none; flex-direction:column; gap:6px;">
+        <div id="grpParcelas" class="hidden">
           <label>Quantidade de parcelas</label>
           <input id="f_qtd" type="number" min="2" step="1" placeholder="Ex.: 12"/>
           <small class="muted">Serão lançadas N transações, 1 por mês, a partir da data informada.</small>
         </div>
 
-        <div class="full" id="grpPeriodicidade" style="display:none; flex-direction:column; gap:6px;">
+        <div id="grpPeriodicidade" class="hidden">
           <label>Periodicidade</label>
           <select id="f_periodicidade">
             <option value="mensal" selected>Mensal</option>
-            <option value="semanal" disabled>Semanal (em breve)</option>
-            <option value="anual" disabled>Anual (em breve)</option>
           </select>
-          <small class="muted">Recorrências são previstas em memória; materialize parcelas específicas quando efetivar.</small>
+          <small class="muted">Recorrências são previstas; materialize quando efetivar.</small>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:6px;">
-          <label>Status inicial</label>
-          <select id="f_status">
-            <option value="cadastrada" selected>Cadastrada</option>
-            <option value="agendada">Agendada</option>
-            <option value="efetivada">Efetivada</option>
-          </select>
-        </div>
+        <label>Status inicial</label>
+        <select id="f_status">
+          <option value="cadastrada" selected>Cadastrada</option>
+          <option value="agendada">Agendada</option>
+          <option value="efetivada">Efetivada</option>
+        </select>
       </div>
 
       <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
@@ -167,17 +163,29 @@
     </div>
   </div>
 
-  <!-- config.js -->
+  <!-- Config + Supabase JS -->
   <script src="./config.js"></script>
+  <script src="https://esm.sh/@supabase/supabase-js@2"></script>
   <script>
+    // ====== Setup Supabase client (usa anon só para iniciar a SDK) ======
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true }
+    });
 
-    const headers = {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-      Prefer: 'return=representation'
-    };
+    // ====== UI refs ======
+    const $authView  = document.getElementById('authView');
+    const $appView   = document.getElementById('appView');
+    const $userBar   = document.getElementById('userBar');
+    const $userInfo  = document.getElementById('userInfo');
+    const $authMsg   = document.getElementById('authMsg');
+
+    const $email  = document.getElementById('email');
+    const $pwd    = document.getElementById('password');
+    const $btnLogin  = document.getElementById('btnLogin');
+    const $btnSignup = document.getElementById('btnSignup');
+    const $btnGoogle = document.getElementById('btnGoogle');
+    const $btnLogout = document.getElementById('btnLogout');
 
     const $conta   = document.getElementById('conta');
     const $mesRef  = document.getElementById('mesRef');
@@ -187,8 +195,7 @@
     const $btnNova = document.getElementById('btnNova');
     const $out     = document.getElementById('output');
 
-    const $modal  = document.getElementById('modal');
-    const m_title = document.getElementById('modalTitle');
+    const $modal   = document.getElementById('modal');
     const f_kind  = document.getElementById('f_kind');
     const f_desc  = document.getElementById('f_descricao');
     const f_tipo  = document.getElementById('f_tipo');
@@ -199,54 +206,92 @@
     const grpPeriodicidade = document.getElementById('grpPeriodicidade');
     const f_periodicidade = document.getElementById('f_periodicidade');
     const f_status = document.getElementById('f_status');
-    const m_hint  = document.getElementById('m_hint');
 
-    // mês atual e data padrão
-    const now = new Date();
-    $mesRef.value = now.toISOString().slice(0,7);
-    f_data.value = new Date().toISOString().slice(0,10);
-
+    // ====== Helpers ======
     function money(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
     function dayOnly(iso){ const d=new Date(iso); return isNaN(d)?iso:d.getUTCDate(); }
     function classSaldo(v){ return Number(v||0)<0?'saldo saldo-neg':'saldo saldo-pos'; }
     function addMonthsYM(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(Date.UTC(y,m-1,1)); d.setUTCMonth(d.getUTCMonth()+delta); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
+    const now = new Date(); document.getElementById('mesRef').value = now.toISOString().slice(0,7); f_data.value = new Date().toISOString().slice(0,10);
 
-    async function carregarContas() {
-      try {
-        const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
-        const res = await fetch(url, { headers });
-        if (!res.ok) throw new Error(res.status+' '+res.statusText);
-        const contas = await res.json();
-        if (!contas.length) { $out.innerHTML='<div class="muted">Nenhuma conta encontrada.</div>'; return; }
-        $conta.innerHTML = contas.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
-        consultar();
-      } catch(e){ $out.innerHTML = `<div class="muted">Erro ao carregar contas: ${e.message}</div>`; }
+    // Pega token atual do usuário logado
+    async function getAuthHeaders(){
+      const { data:{ session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Sem sessão');
+      return {
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation'
+      };
     }
 
-    async function getContaIdByNome(nome) {
-      const url = `${SUPABASE_URL}/rest/v1/contas?select=id,nome&nome=eq.${encodeURIComponent(nome)}`;
-      const r = await fetch(url, { headers });
-      const js = await r.json();
-      return js[0]?.id || null;
+    // ====== AUTH actions ======
+    $btnLogin.addEventListener('click', async ()=>{
+      $authMsg.textContent = 'Entrando...';
+      const { error } = await supabase.auth.signInWithPassword({ email: $email.value.trim(), password: $pwd.value });
+      if (error) { $authMsg.textContent = 'Erro: ' + error.message; return; }
+      $authMsg.textContent = '';
+      onAuthChanged();
+    });
+
+    $btnSignup.addEventListener('click', async ()=>{
+      $authMsg.textContent = 'Criando...';
+      const { error } = await supabase.auth.signUp({ email: $email.value.trim(), password: $pwd.value });
+      if (error) { $authMsg.textContent = 'Erro: ' + error.message; return; }
+      $authMsg.textContent = 'Conta criada. Verifique seu e-mail (se exigido) e faça login.';
+    });
+
+    $btnGoogle.addEventListener('click', async ()=>{
+      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options:{ redirectTo: window.location.origin } });
+      if (error) alert(error.message);
+    });
+
+    $btnLogout.addEventListener('click', async ()=>{
+      await supabase.auth.signOut();
+      onAuthChanged();
+    });
+
+    // Detecta mudanças de sessão
+    supabase.auth.onAuthStateChange((_event, _session)=> onAuthChanged());
+
+    async function onAuthChanged(){
+      const { data:{ user, session } } = await supabase.auth.getSession();
+      const logged = !!user;
+      document.getElementById('authView').classList.toggle('hidden', logged);
+      document.getElementById('appView').classList.toggle('hidden', !logged);
+      document.getElementById('userBar').classList.toggle('hidden', !logged);
+      if (logged){
+        $userInfo.textContent = user.email || 'Usuário';
+        carregarContas().catch(err=> $out.innerHTML = `<div class="muted">Erro: ${err.message}</div>`);
+      } else {
+        $userInfo.textContent = '—';
+      }
+    }
+
+    // ====== Data access (agora com Bearer = access_token) ======
+    async function carregarContas() {
+      const headers = await getAuthHeaders();
+      const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
+      const res = await fetch(url, { headers });
+      if (!res.ok) throw new Error((await res.text()) || (res.status+' '+res.statusText));
+      const contas = await res.json();
+      if (!contas.length) { $out.innerHTML='<div class="muted">Nenhuma conta encontrada.</div>'; return; }
+      $conta.innerHTML = contas.map(c => `<option value="${c.nome}">${c.nome}</option>`).join('');
+      consultar();
     }
 
     async function consultar() {
+      const headers = await getAuthHeaders();
       const conta = $conta.value, ym = $mesRef.value;
       if (!conta || !ym) { $out.innerHTML = `<div>Selecione conta e mês.</div>`; return; }
-
       const referencia = ym + '-01';
       const url = `${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
       $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
-
-      try {
-        const res = await fetch(url, { method:'POST', headers, body: JSON.stringify({ conta_nome: conta, referencia }) });
-        if (!res.ok) { const txt=await res.text(); throw new Error(`${res.status} ${res.statusText}\n${txt}`); }
-        const rows = await res.json();
-        if (!rows.length) { $out.innerHTML = `<div class="muted">Nenhum dado para ${ym}.</div>`; return; }
-        renderTabela(rows);
-      } catch (e) {
-        $out.innerHTML = `<div class="muted">Erro na consulta: ${e.message}</div>`;
-      }
+      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify({ conta_nome: conta, referencia }) });
+      if (!res.ok) { const txt=await res.text(); $out.innerHTML = `<div class="muted">Erro: ${txt}</div>`; return; }
+      const rows = await res.json();
+      if (!rows.length) { $out.innerHTML = `<div class="muted">Nenhum dado.</div>`; return; }
+      renderTabela(rows);
     }
 
     function renderTabela(rows) {
@@ -260,7 +305,6 @@
 
       document.querySelectorAll('button.tx-toggle').forEach(btn => btn.addEventListener('click', onToggleExpander));
       document.querySelectorAll('select.tx-status').forEach(sel => sel.addEventListener('change', onChangeStatus));
-      document.querySelectorAll('button.tx-edit').forEach(btn => btn.addEventListener('click', onEdit));
       document.querySelectorAll('button.tx-del').forEach(btn => btn.addEventListener('click', onDeleteTx));
       document.querySelectorAll('button.tx-del-rec').forEach(btn => btn.addEventListener('click', onDeleteRec));
     }
@@ -299,19 +343,6 @@
             <option value="efetivada">Efetivada</option>
           </select>`;
 
-        const editBtn = `
-          <button class="tx-edit btn-link"
-                  data-virtual="${!!t.virtual}"
-                  data-id="${t.id || ''}"
-                  data-recorrencia-id="${t.recorrencia_id || ''}"
-                  data-conta-id="${t.conta_id || ''}"
-                  data-data="${t.data || diaIso}"
-                  data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
-                  data-tipo="${t.tipo}" data-valor="${t.valor}"
-                  data-status="${t.status || 'cadastrada'}">
-            Editar
-          </button>`;
-
         const delBtn = t.virtual
           ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}">Excluir recorrência</button>`
           : `<button class="tx-del btn-danger" data-id="${t.id}">Excluir</button>`;
@@ -320,14 +351,11 @@
             <span class="pill ${t.tipo==='credito'?'credit':'debit'}">${t.tipo}</span>
             <strong>${t.descricao}</strong> — ${money(t.valor)}
             ${t.virtual ? '<span class="pill">virtual</span>' : ''}
-            <span class="tx-actions">${select}${editBtn}${delBtn}</span>
+            <span class="tx-actions">${select}${delBtn}</span>
           </li>`;
       }).join('');
 
-      return `<div class="expand-card">
-        <div class="expand-header"><span class="badge-count">${txs.length} transação(ões)</span></div>
-        <ul class="tx-list">${itens}</ul>
-      </div>`;
+      return `<div class="expand-card"><ul class="tx-list">${itens}</ul></div>`;
     }
 
     function onToggleExpander(e) {
@@ -344,13 +372,6 @@
       const sel = e.currentTarget;
       const novoStatus = sel.value;
       if (!novoStatus) return;
-
-      const original = sel.dataset.statusOriginal || 'cadastrada';
-      if (original === 'efetivada' && novoStatus !== 'efetivada') {
-        const ok = confirm('Esta transação já estava EFETIVADA. Reverter?');
-        if (!ok) { sel.value = ''; return; }
-      }
-
       const isVirtual = sel.dataset.virtual === 'true';
       if (isVirtual) {
         await materializar({
@@ -365,148 +386,96 @@
         await consultar();
         return;
       }
-
       await patchTransacao(sel.dataset.id, { status: novoStatus });
       await consultar();
     }
 
-    // CRUD helpers
-    async function patchTransacao(id, bodyObj) {
-      const url = `${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`;
-      const res = await fetch(url, { method:'PATCH', headers, body: JSON.stringify(bodyObj) });
+    // ====== CRUD via REST com token do usuário ======
+    async function api(method, path, body=null){
+      const headers = await getAuthHeaders();
+      const res = await fetch(`${SUPABASE_URL}${path}`, {
+        method, headers, body: body? JSON.stringify(body): null
+      });
       if (!res.ok) throw new Error(await res.text());
+      return res.json?.() ?? null;
     }
-    async function materializar(bodyObj) {
-      const url = `${SUPABASE_URL}/rest/v1/transacoes`;
-      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(bodyObj) });
-      if (!res.ok) throw new Error(await res.text());
-    }
-    async function deleteTransacao(id) {
-      const url = `${SUPABASE_URL}/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`;
-      const res = await fetch(url, { method:'DELETE', headers });
-      if (!res.ok) throw new Error(await res.text());
-    }
-    async function deleteRecorrencia(id) {
-      const url = `${SUPABASE_URL}/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`;
-      const res = await fetch(url, { method:'DELETE', headers });
-      if (!res.ok) throw new Error(await res.text());
-    }
+    function getContaIdByNome(nome){ return api('GET', `/rest/v1/contas?select=id&nome=eq.${encodeURIComponent(nome)}`); }
+    function materializar(obj){ return api('POST','/rest/v1/transacoes', obj); }
+    function patchTransacao(id,body){ return api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`, body); }
+    function deleteTransacao(id){ return api('DELETE', `/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`); }
+    function deleteRecorrencia(id){ return api('DELETE', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`); }
 
-    // Modal criar
-    function openCreateModal() {
-      m_title.textContent = 'Nova Transação';
-      f_kind.value = 'unica';
-      f_desc.value = '';
-      f_tipo.value = 'debito';
-      f_valor.value = '';
-      f_data.value = new Date().toISOString().slice(0,10);
-      f_qtd.value = '';
-      f_periodicidade.value = 'mensal';
-      f_status.value = 'cadastrada';
-      grpParcelas.style.display = 'none';
-      grpPeriodicidade.style.display = 'none';
-      m_hint.textContent = 'Escolha o tipo do lançamento e preencha os campos.';
-      $modal.style.display = 'flex';
-    }
-    function closeModal(){ $modal.style.display = 'none'; }
-
-    f_kind.addEventListener('change', () => {
-      const k = f_kind.value;
-      grpParcelas.style.display = (k === 'parcelada') ? 'block' : 'none';
-      grpPeriodicidade.style.display = (k === 'recorrente') ? 'block' : 'none';
+    // Nova transação (modal)
+    document.getElementById('btnNova').addEventListener('click', ()=>{
+      document.getElementById('modal').classList.remove('hidden');
+      f_kind.value='unica'; f_desc.value=''; f_tipo.value='debito'; f_valor.value='';
+      f_data.value=new Date().toISOString().slice(0,10); f_qtd.value='';
+      grpParcelas.classList.add('hidden'); grpPeriodicidade.classList.add('hidden');
+    });
+    document.getElementById('m_cancel').addEventListener('click', ()=> document.getElementById('modal').classList.add('hidden'));
+    f_kind.addEventListener('change', ()=>{
+      grpParcelas.classList.toggle('hidden', f_kind.value!=='parcelada');
+      grpPeriodicidade.classList.toggle('hidden', f_kind.value!=='recorrente');
     });
 
-    document.getElementById('m_cancel').addEventListener('click', closeModal);
-    document.getElementById('m_save').addEventListener('click', async () => {
-      try {
+    document.getElementById('m_save').addEventListener('click', async ()=>{
+      try{
         const contaNome = $conta.value;
-        const contaId = await getContaIdByNome(contaNome);
-        if (!contaId) throw new Error('Conta não encontrada.');
+        const contaRes = await getContaIdByNome(contaNome);
+        const conta_id = Array.isArray(contaRes) && contaRes[0]?.id;
+        if (!conta_id) throw new Error('Conta não encontrada');
 
         const base = {
-          conta_id: contaId,
-          descricao: (f_desc.value || '').trim(),
+          conta_id,
+          descricao: (f_desc.value||'').trim(),
           tipo: f_tipo.value,
-          valor: Number(f_valor.value || 0),
+          valor: Number(f_valor.value||0),
           data: f_data.value,
           status: f_status.value
         };
-        if (!base.descricao) throw new Error('Descrição é obrigatória.');
-        if (!base.valor || base.valor <= 0) throw new Error('Informe um valor maior que zero.');
-        if (!base.data) throw new Error('Informe a data.');
+        if (!base.descricao) throw new Error('Descrição é obrigatória');
+        if (!base.valor || base.valor <= 0) throw new Error('Informe um valor > 0');
+        if (!base.data) throw new Error('Informe a data');
 
-        const kind = f_kind.value;
-
-        if (kind === 'unica') {
+        if (f_kind.value === 'unica'){
           await materializar(base);
-        } else if (kind === 'parcelada') {
-          const n = parseInt(f_qtd.value, 10);
-          if (!n || n < 2) throw new Error('Informe a quantidade de parcelas (mínimo 2).');
-          const [y, m, d] = base.data.split('-').map(x=>parseInt(x,10));
-          const parts = [];
-          for (let i=1; i<=n; i++){
-            const di = new Date(Date.UTC(y, m-1, d)); di.setUTCMonth(di.getUTCMonth() + (i-1));
-            parts.push({
-              conta_id: base.conta_id,
-              descricao: `${base.descricao} (${i}/${n})`,
-              tipo: base.tipo,
-              valor: base.valor,
-              data: di.toISOString().slice(0,10),
-              status: base.status
-            });
+        } else if (f_kind.value === 'parcelada'){
+          const n = parseInt(f_qtd.value,10); if(!n||n<2) throw new Error('Qtd de parcelas (>=2)');
+          const [y,m,d] = base.data.split('-').map(Number);
+          const arr=[]; for(let i=1;i<=n;i++){ const dt=new Date(Date.UTC(y,m-1,d)); dt.setUTCMonth(dt.getUTCMonth()+i-1);
+            arr.push({conta_id,descricao:`${base.descricao} (${i}/${n})`,tipo:base.tipo,valor:base.valor,data:dt.toISOString().slice(0,10),status:base.status});
           }
-          const url = `${SUPABASE_URL}/rest/v1/transacoes`;
-          const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(parts) });
-          if (!res.ok) throw new Error(await res.text());
-        } else if (kind === 'recorrente') {
-          const rec = {
-            conta_id: base.conta_id,
-            descricao: base.descricao,
-            tipo: base.tipo,
-            valor: base.valor,
-            inicio: base.data,
-            fim: null,
-            periodicidade: f_periodicidade.value || 'mensal'
-          };
-          const url = `${SUPABASE_URL}/rest/v1/recorrencias`;
-          const res = await fetch(url, { method:'POST', headers, body: JSON.stringify(rec) });
-          if (!res.ok) throw new Error(await res.text());
+          await api('POST','/rest/v1/transacoes', arr);
+        } else {
+          // recorrente
+          await api('POST','/rest/v1/recorrencias', {
+            conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor,
+            inicio: base.data, fim: null, periodicidade: 'mensal'
+          });
         }
 
-        closeModal();
+        document.getElementById('modal').classList.add('hidden');
         await consultar();
-      } catch (err) {
-        alert('Erro ao salvar:\n' + err.message);
-      }
+      }catch(err){ alert('Erro ao salvar: '+err.message); }
     });
 
-    // handlers de exclusão
-    async function onDeleteTx(e){
-      const id = e.currentTarget.dataset.id;
-      if (!id) return;
-      if (!confirm('Excluir esta transação?')) return;
-      try { await deleteTransacao(id); await consultar(); }
-      catch(err){ alert('Erro ao excluir:\n' + err.message); }
+    // Deletar
+    async function onDeleteTx(e){ const id=e.currentTarget.dataset.id; if(!id) return;
+      if(!confirm('Excluir esta transação?')) return;
+      try{ await deleteTransacao(id); await consultar(); }catch(err){ alert('Erro: '+err.message); }
     }
-    async function onDeleteRec(e){
-      const rid = e.currentTarget.dataset.recorrenciaId;
-      if (!rid) return;
-      if (!confirm('Excluir esta recorrência (todas as futuras previsões)?')) return;
-      try { await deleteRecorrencia(rid); await consultar(); }
-      catch(err){ alert('Erro ao excluir recorrência:\n' + err.message); }
+    async function onDeleteRec(e){ const rid=e.currentTarget.dataset.recorrenciaId; if(!rid) return;
+      if(!confirm('Excluir esta recorrência?')) return;
+      try{ await deleteRecorrencia(rid); await consultar(); }catch(err){ alert('Erro: '+err.message); }
     }
 
-    // editar (placeholder: podemos reusar a mesma modal depois)
-    async function onEdit(){ alert('Edição detalhada permanece como na v1. Podemos reusar esta modal para edição depois.'); }
-
-    // navegação / inicialização
+    // Navegação
     document.getElementById('btnAtualizar').addEventListener('click', consultar);
-    document.getElementById('btnMesAnterior').addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, -1); consultar(); });
-    document.getElementById('btnMesSeguinte').addEventListener('click', () => { $mesRef.value = addMonthsYM($mesRef.value, +1); consultar(); });
-    document.getElementById('btnNova').addEventListener('click', () => { openCreateModal(); });
+    document.getElementById('btnMesAnterior').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,-1); consultar(); });
+    document.getElementById('btnMesSeguinte').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,+1); consultar(); });
 
-    carregarContas();
-    $modal.addEventListener('click', (e) => { if (e.target === $modal) closeModal(); });
+    // Init: checa sessão
+    onAuthChanged();
   </script>
 </body>
 </html>
