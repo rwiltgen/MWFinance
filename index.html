@@ -213,10 +213,10 @@
     </div>
   </div>
 
-  <!-- config.js precisa vir antes do módulo para expor window.CONFIG -->
+  <!-- config.js precisa vir antes do módulo -->
   <script src="./config.js"></script>
 
-  <!-- Script principal como MÓDULO ES: importa a SDK corretamente -->
+  <!-- Script principal como módulo ES -->
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -225,6 +225,9 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true }
     });
+
+    // ====== Estado de sessão (evita data races) ======
+    let currentSession = null;
 
     // ====== UI refs ======
     const $authView  = document.getElementById('authView');
@@ -267,11 +270,29 @@
     function addMonthsYM(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(Date.UTC(y,m-1,1)); d.setUTCMonth(d.getUTCMonth()+delta); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
     const now = new Date(); document.getElementById('mesRef').value = now.toISOString().slice(0,7);
 
+    function setViewsBySession(session){
+      currentSession = session;
+      const logged = !!session?.user;
+      $authView.classList.toggle('hidden', logged);
+      $appView.classList.toggle('hidden', !logged);
+      $userBar.classList.toggle('hidden', !logged);
+      if (logged){
+        $userInfo.textContent = session.user.email || 'Usuário';
+        carregarContas().catch(err=> $out.innerHTML = `<div class="muted">Erro: ${err.message}</div>`);
+      } else {
+        $userInfo.textContent = '—';
+        closeModal();
+      }
+    }
+
     async function getAuthHeaders(){
-      const { data:{ session } } = await supabase.auth.getSession();
-      if (!session) throw new Error('Sem sessão');
+      if (!currentSession) {
+        const { data:{ session } } = await supabase.auth.getSession();
+        currentSession = session;
+      }
+      if (!currentSession) throw new Error('Sem sessão');
       return {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${currentSession.access_token}`,
         'Content-Type': 'application/json',
         Prefer: 'return=representation'
       };
@@ -284,7 +305,8 @@
         const { error } = await supabase.auth.signInWithPassword({ email: $email.value.trim(), password: $pwd.value });
         if (error) { $authMsg.textContent = 'Erro: ' + error.message; return; }
         $authMsg.textContent = '';
-        onAuthChanged();
+        const { data:{ session } } = await supabase.auth.getSession();
+        setViewsBySession(session);
       } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
 
@@ -297,40 +319,43 @@
       } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
 
+    const PROD_REDIRECT = 'https://mwfinance.vercel.app'; // ajuste se usar domínio custom
     $btnGoogle.addEventListener('click', async ()=>{
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options:{ redirectTo: window.location.origin }
+        options:{ redirectTo: PROD_REDIRECT }
       });
       if (error) alert(error.message);
     });
 
-    $btnLogout.addEventListener('click', async ()=>{
+    document.getElementById('btnLogout').addEventListener('click', async ()=>{
       await supabase.auth.signOut();
-      onAuthChanged();
+      setViewsBySession(null);
     });
 
-    supabase.auth.onAuthStateChange((_event, _session)=> onAuthChanged());
-
-    async function onAuthChanged(){
-      const { data:{ user } } = await supabase.auth.getSession();
-      const logged = !!user;
-      $authView.classList.toggle('hidden', logged);
-      $appView.classList.toggle('hidden', !logged);
-      document.getElementById('userBar').classList.toggle('hidden', !logged);
-      if (logged){
-        document.getElementById('userInfo').textContent = user.email || 'Usuário';
-        carregarContas().catch(err=> $out.innerHTML = `<div class="muted">Erro: ${err.message}</div>`);
-      } else {
-        document.getElementById('userInfo').textContent = '—';
-        closeModal();
+    // Evento de auth (login/logout/refresh)
+    supabase.auth.onAuthStateChange((_event, session)=>{
+      setViewsBySession(session);
+      // Após OAuth, a URL pode vir com #access_token=... — limpar pra ficar bonita
+      if (location.hash && session?.access_token) {
+        history.replaceState(null, '', location.pathname + location.search);
       }
-    }
+    });
+
+    // ====== Boot de sessão (pega a sessão inicial APÓS redirect) ======
+    (async function boot(){
+      const { data:{ session } } = await supabase.auth.getSession();
+      setViewsBySession(session);
+      // limpa hash se veio do OAuth
+      if (location.hash && session?.access_token) {
+        history.replaceState(null, '', location.pathname + location.search);
+      }
+    })();
 
     // ====== Data access ======
     async function carregarContas() {
       const headers = await getAuthHeaders();
-      const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
+      const url = `${CONFIG.SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
       const res = await fetch(url, { headers });
       if (!res.ok) throw new Error((await res.text()) || (res.status+' '+res.statusText));
       const contas = await res.json();
@@ -344,7 +369,7 @@
       const conta = $conta.value, ym = $mesRef.value;
       if (!conta || !ym) { $out.innerHTML = `<div>Selecione conta e mês.</div>`; return; }
       const referencia = ym + '-01';
-      const url = `${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
+      const url = `${CONFIG.SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
       $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
       const res = await fetch(url, { method:'POST', headers, body: JSON.stringify({ conta_nome: conta, referencia }) });
       if (!res.ok) { const txt=await res.text(); $out.innerHTML = `<div class="muted">Erro: ${txt}</div>`; return; }
@@ -452,7 +477,7 @@
     // ====== CRUD via REST com token do usuário ======
     async function api(method, path, body=null){
       const headers = await getAuthHeaders();
-      const res = await fetch(`${SUPABASE_URL}${path}`, {
+      const res = await fetch(`${CONFIG.SUPABASE_URL}${path}`, {
         method, headers, body: body? JSON.stringify(body): null
       });
       if (!res.ok) throw new Error(await res.text());
@@ -538,9 +563,6 @@
     document.getElementById('btnAtualizar').addEventListener('click', consultar);
     document.getElementById('btnMesAnterior').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,-1); consultar(); });
     document.getElementById('btnMesSeguinte').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,+1); consultar(); });
-
-    // Init
-    onAuthChanged();
   </script>
 </body>
 </html>
