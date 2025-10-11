@@ -1,0 +1,6 @@
+conta,categoria,descricao,tipo,valor,data,status
+Conta Corrente Nubank,Salário,Salário Mensal,credito,5000,2025-03-05,efetivada
+Conta Corrente Nubank,Aluguel,Aluguel,debito,1200,2025-03-01,agendada
+Conta Corrente Nubank,Academia,Academia Mensal,debito,150,2025-03-10,cadastrada
+Conta Corrente Nubank,Mercado,Compras de Supermercado,debito,300,2025-03-15,efetivada
+
