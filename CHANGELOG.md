@@ -39,3 +39,8 @@
 - Esconde navegação antes do login (menus só aparecem após sessão autenticada).
 - Links de download dos templates apontando corretamente para arquivos `.csv`.
 
+## v1.4.4 — Gate de sessão + templates
+- Esconde TODA a aplicação (nav + seções) até o usuário estar autenticado (`body.logged`).
+- `boot()` não força navegação para `#/saldos` quando não logado.
+- Templates de importação garantidos como `.csv` (links corrigidos).
+

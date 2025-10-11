@@ -2,13 +2,13 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.3</title>
+  <title>MWFinance — v1.4.4</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
       --bg:#0b0b10; --card:#141421; --muted:#a8a8b3; --border:#2c2c3f;
       --row:#11111a; --row-alt:#0f0f18; --pos:#75e39a; --neg:#ff8484;
-      --pill:#2a2a3a; --shadow:rgba(0,0,0,.35); --accent:#3c7cff; --accent-strong:#6ea3ff;
+      --pill:#2a2a3a; --shadow:rgba(0,0,0,.35); --accent:#3c7cff;
       --link:#9fb8ff; --link-hover:#cfe0ff;
     }
     *{box-sizing:border-box}
@@ -16,20 +16,18 @@
     h1{margin:0 0 8px;font-size:20px}
     a{color:var(--link); text-decoration:underline}
     a:hover{color:var(--link-hover)}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px var(--shadow)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
     .muted{color:var(--muted)}
     .hidden{display:none}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
     label{font-size:13px;opacity:.9}
-    input,select,button,textarea{background:#1b1b2b;color:#eaeaea;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px}
+    input,select,button{background:#1b1b2b;color:#eaeaea;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px}
     button{cursor:pointer;font-weight:600}
-    button[disabled]{opacity:.5;cursor:not-allowed}
-    .btn-link{background:transparent;border:1px solid var(--pill);padding:10px 12px;border-radius:10px}
+    .btn-link{background:transparent;border:1px solid #2a2a3a;padding:10px 12px;border-radius:10px}
     .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
     .btn-danger{background:transparent;border:1px solid #6a2a2a;color:#ff9b9b;padding:6px 10px;border-radius:10px}
     .split{display:flex;justify-content:space-between;align-items:center}
     .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:12px}
-    .section-title .muted{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#2a2a3a;border:1px solid #3a3a57;margin-right:6px;font-size:12px}
 
     /* NAV */
@@ -60,13 +58,17 @@
 
     /* filtros saldos */
     .filters{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap}
-    .filters > *{margin:0}
     .filters .group{display:flex; flex-direction:column; gap:6px}
 
     /* modal */
     #modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
     #modal-backdrop.open{ display:flex; }
     .modal{width:100%; max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:0 12px 40px rgba(0,0,0,.5)}
+
+    /* BLOQUEIO PRÉ-LOGIN: tudo da app some até body.logged */
+    #navBar,[data-sec]{display:none}
+    body.logged #navBar{display:block}
+    body.logged [data-sec]{display:block}
   </style>
 </head>
 <body>
@@ -80,8 +82,8 @@
     </div>
   </div>
 
-  <!-- Navegação (fica oculta até logar) -->
-  <nav id="navBar" class="card nav-wrap hidden">
+  <!-- Navegação (oculta até logar; CSS + JS) -->
+  <nav id="navBar" class="card nav-wrap">
     <div class="nav">
       <a href="#/saldos" id="nav-saldos"><span class="ic">📊</span><span class="label">Saldos</span></a>
       <a href="#/contas" id="nav-contas"><span class="ic">💳</span><span class="label">Contas</span></a>
@@ -117,7 +119,7 @@
   </div>
 
   <!-- Views -->
-  <section id="view-saldos" class="hidden">
+  <section id="view-saldos" data-sec class="hidden">
     <div class="card">
       <div class="section-title">
         <div style="min-width:140px;"><strong>Saldos Diários</strong></div>
@@ -145,7 +147,7 @@
     <div id="output" class="card"><div class="muted">Selecione a conta…</div></div>
   </section>
 
-  <section id="view-contas" class="hidden">
+  <section id="view-contas" data-sec class="hidden">
     <div class="card">
       <div class="section-title">
         <div><strong>Contas</strong></div>
@@ -168,7 +170,7 @@
     <div id="contasLista" class="card"><div class="muted">Carregando…</div></div>
   </section>
 
-  <section id="view-categorias" class="hidden">
+  <section id="view-categorias" data-sec class="hidden">
     <div class="card">
       <div class="section-title">
         <div><strong>Categorias</strong></div>
@@ -198,7 +200,7 @@
     <div id="categoriasLista" class="card"><div class="muted">Carregando…</div></div>
   </section>
 
-  <section id="view-importar" class="hidden">
+  <section id="view-importar" data-sec class="hidden">
     <div class="card">
       <div class="section-title">
         <div><strong>Importar CSV</strong></div>
@@ -324,57 +326,13 @@
       importar: document.getElementById('nav-importar'),
     };
 
-    const $email  = document.getElementById('email');
-    const $pwd    = document.getElementById('password');
-    const $btnLogin  = document.getElementById('btnLogin');
-    const $btnSignup = document.getElementById('btnSignup');
-    const $btnGoogle = document.getElementById('btnGoogle');
-    const $btnLogout = document.getElementById('btnLogout');
-    const $authMsg   = document.getElementById('authMsg');
-
-    const $conta   = document.getElementById('conta');
-    const $mesRef  = document.getElementById('mesRef');
-    const $btnAtualizar = document.getElementById('btnAtualizar');
-    const $btnPrev = document.getElementById('btnMesAnterior');
-    const $btnNext = document.getElementById('btnMesSeguinte');
-    const $btnNova = document.getElementById('btnNova');
-    const $out     = document.getElementById('output');
-
-    const $c_nome = document.getElementById('c_nome');
-    const $c_saldo = document.getElementById('c_saldo');
-    const $btnCriarConta = document.getElementById('btnCriarConta');
-    const $contasLista   = document.getElementById('contasLista');
-
-    const $cat_nome = document.getElementById('cat_nome');
-    const $cat_tipo = document.getElementById('cat_tipo');
-    const $cat_desc = document.getElementById('cat_desc');
-    const $btnCriarCategoria = document.getElementById('btnCriarCategoria');
-    const $categoriasLista   = document.getElementById('categoriasLista');
-
-    const $imp_tipo = document.getElementById('imp_tipo');
-    const $imp_file = document.getElementById('imp_file');
-    const $btnImportarCsv = document.getElementById('btnImportarCsv');
-    const $imp_msg  = document.getElementById('imp_msg');
-
-    const $modal = document.getElementById('modal-backdrop');
-    const f_kind  = document.getElementById('f_kind');
-    const f_desc  = document.getElementById('f_descricao');
-    const f_tipo  = document.getElementById('f_tipo');
-    const f_valor = document.getElementById('f_valor');
-    const f_data  = document.getElementById('f_data');
-    const f_qtd   = document.getElementById('f_qtd');
-    const grpParcelas = document.getElementById('grpParcelas');
-    const grpPeriodicidade = document.getElementById('grpPeriodicidade');
-    const f_periodicidade = document.getElementById('f_periodicidade');
-    const f_status = document.getElementById('f_status');
-
     // ===== Utils =====
     function money(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
     function dayOnly(iso){ const d=new Date(iso); return isNaN(d)?iso:d.getUTCDate(); }
     function classSaldo(v){ return Number(v||0)<0?'saldo saldo-neg':'saldo saldo-pos'; }
     function addMonthsYM(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(Date.UTC(y,m-1,1)); d.setUTCMonth(d.getUTCMonth()+delta); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
-    const now = new Date(); document.getElementById('mesRef').value = now.toISOString().slice(0,7);
 
+    // ===== Auth helpers =====
     async function getAuthHeaders(){
       if (!currentSession) {
         const { data:{ session } } = await supabase.auth.getSession();
@@ -406,17 +364,22 @@
       if (h.startsWith('#/importar')) return 'importar';
       return 'saldos';
     }
-    window.addEventListener('hashchange', ()=> showView(currentViewFromHash()));
+    window.addEventListener('hashchange', ()=>{
+      if (!currentSession) return; // não navega antes de logar
+      showView(currentViewFromHash());
+    });
 
     // ===== Auth =====
     function setViewsBySession(session){
       currentSession = session;
       const logged = !!session?.user;
 
-      // mostra/oculta login e navegação
+      // CSS gate: tudo escondido até logar
+      document.body.classList.toggle('logged', logged);
+
+      // barra do usuário
       $authView.classList.toggle('hidden', logged);
       $userBar.classList.toggle('hidden', !logged);
-      $navBar.classList.toggle('hidden', !logged);
 
       if (logged){
         $userInfo.textContent = session.user.email || 'Usuário';
@@ -428,7 +391,17 @@
         closeModal();
       }
     }
-    document.getElementById('btnLogin').addEventListener('click', async ()=>{
+
+    // botões login
+    const $email  = document.getElementById('email');
+    const $pwd    = document.getElementById('password');
+    const $btnLogin  = document.getElementById('btnLogin');
+    const $btnSignup = document.getElementById('btnSignup');
+    const $btnGoogle = document.getElementById('btnGoogle');
+    const $btnLogout = document.getElementById('btnLogout');
+    const $authMsg   = document.getElementById('authMsg');
+
+    $btnLogin.addEventListener('click', async ()=>{
       try {
         $authMsg.textContent = 'Entrando...';
         const { error } = await supabase.auth.signInWithPassword({ email: $email.value.trim(), password: $pwd.value });
@@ -438,27 +411,30 @@
         setViewsBySession(session);
       } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
-    document.getElementById('btnSignup').addEventListener('click', async ()=>{
+    $btnSignup.addEventListener('click', async ()=>{
       try {
         const { error } = await supabase.auth.signUp({ email: $email.value.trim(), password: $pwd.value });
         $authMsg.textContent = error ? 'Erro: '+error.message : 'Conta criada. Verifique seu e-mail e faça login.';
       } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
     const PROD_REDIRECT = 'https://mwfinance.vercel.app';
-    document.getElementById('btnGoogle').addEventListener('click', async ()=>{
+    $btnGoogle.addEventListener('click', async ()=>{
       const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: PROD_REDIRECT } });
       if (error) alert(error.message);
     });
-    document.getElementById('btnLogout').addEventListener('click', async ()=>{ await supabase.auth.signOut(); setViewsBySession(null); });
+    $btnLogout.addEventListener('click', async ()=>{ await supabase.auth.signOut(); setViewsBySession(null); });
+
     supabase.auth.onAuthStateChange((_event, session)=>{
       setViewsBySession(session);
-      if (location.hash && session?.access_token) history.replaceState(null,'',location.pathname+location.search);
+      // Remove fragmentos de OAuth
+      if (location.hash.startsWith('#access_token')) history.replaceState(null,'',location.pathname+location.search);
     });
+
     (async function boot(){
       const { data:{ session } } = await supabase.auth.getSession();
       setViewsBySession(session);
-      if (location.hash && session?.access_token) history.replaceState(null,'',location.pathname+location.search);
-      if (!location.hash) location.hash = '#/saldos';
+      // só fixa hash padrão se estiver logado
+      if (session && !location.hash) location.hash = '#/saldos';
     })();
 
     // ===== API base =====
@@ -470,6 +446,15 @@
     }
 
     // ===== View: Saldos =====
+    const $conta   = document.getElementById('conta');
+    const $mesRef  = document.getElementById('mesRef');
+    const $btnAtualizar = document.getElementById('btnAtualizar');
+    const $btnPrev = document.getElementById('btnMesAnterior');
+    const $btnNext = document.getElementById('btnMesSeguinte');
+    const $btnNova = document.getElementById('btnNova');
+    const $out     = document.getElementById('output');
+    document.getElementById('mesRef').value = new Date().toISOString().slice(0,7);
+
     async function carregarContas() {
       try{
         const headers = await getAuthHeaders();
@@ -487,26 +472,27 @@
       } catch (e){ $out.innerHTML = `<div class="muted">Erro: ${e.message}</div>`; }
     }
     async function consultar() {
-      const headers = await getAuthHeaders();
-      const conta = $conta.value, ym = $mesRef.value;
-      if (!conta || !ym) { $out.innerHTML = `<div>Selecione conta e mês.</div>`; return; }
-      const referencia = ym + '-01';
-      const url = `${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
-      $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
-      const res = await fetch(url, { method:'POST', headers, body: JSON.stringify({ conta_nome: conta, referencia }) });
-      if (!res.ok) { const txt=await res.text(); $out.innerHTML = `<div class="muted">Erro: ${txt}</div>`; return; }
-      const rows = await res.json();
-      if (!rows.length) { $out.innerHTML = `<div class="muted">Nenhum dado.</div>`; return; }
-      renderTabela(rows);
+      try{
+        const headers = await getAuthHeaders();
+        const conta = $conta.value, ym = $mesRef.value;
+        if (!conta || !ym) { $out.innerHTML = `<div>Selecione conta e mês.</div>`; return; }
+        const referencia = ym + '-01';
+        const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`, {
+          method:'POST', headers, body: JSON.stringify({ conta_nome: conta, referencia })
+        });
+        if (!res.ok) { $out.innerHTML = `<div class="muted">Erro: ${await res.text()}</div>`; return; }
+        const rows = await res.json();
+        if (!rows.length) { $out.innerHTML = `<div class="muted">Nenhum dado.</div>`; return; }
+        renderTabela(rows);
+      }catch(e){ $out.innerHTML = `<div class="muted">Erro: ${e.message}</div>`; }
     }
     function renderTabela(rows) {
       const tbody = rows.map((r, idx) => renderLinhaDia(r, idx)).join('');
-      const table = `
+      $out.innerHTML = `
         <table>
           <thead><tr><th class="col-dia">Dia</th><th>Transações do dia</th><th class="col-saldo">Saldo</th></tr></thead>
           <tbody>${tbody}</tbody>
         </table>`;
-      $out.innerHTML = table;
       document.querySelectorAll('button.tx-toggle').forEach(btn => btn.addEventListener('click', onToggleExpander));
       document.querySelectorAll('select.tx-status').forEach(sel => sel.addEventListener('change', onChangeStatus));
       document.querySelectorAll('button.tx-del').forEach(btn => btn.addEventListener('click', onDeleteTx));
@@ -518,7 +504,7 @@
         ? `<button class="tx-toggle btn-link" data-expander="exp-${idx}" aria-expanded="false" data-count="${txs.length}">► ${txs.length} transação(ões)</button>`
         : `<span class="muted">–</span>`;
       const linha = `<tr class="${Number(r.saldo)<0?'row-neg':''}">
-          <td><span class="day-chip">${dayOnly(r.dia)}</span></td>
+          <td><span class="day-chip">${(new Date(r.dia)).getUTCDate()}</span></td>
           <td>${meio}</td>
           <td class="${classSaldo(r.saldo)}">${money(r.saldo)}</td>
         </tr>`;
@@ -594,10 +580,11 @@
     document.getElementById('btnMesAnterior').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,-1); consultar(); });
     document.getElementById('btnMesSeguinte').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,+1); consultar(); });
 
-    // ===== Contas =====
+    // ===== Contas / Categorias / Importação =====
     async function listarContas(){
       try{
         const r = await api('GET','/rest/v1/contas?select=id,nome,saldo_inicial&order=nome.asc');
+        const $contasLista = document.getElementById('contasLista');
         if (!r?.length) { $contasLista.innerHTML = '<div class="muted">Nenhuma conta. Crie sua primeira ao lado.</div>'; return; }
         $contasLista.innerHTML = r.map(c => `
           <div class="row" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:6px 0;">
@@ -609,7 +596,7 @@
           </div>`).join('');
         Array.from($contasLista.querySelectorAll('button')).forEach(b=>{
           const id=b.dataset.id, action=b.dataset.action;
-          if (action==='del') b.onclick = async ()=>{ if(confirm('Excluir conta? (irá falhar se houver dados vinculados)')){ try{ await api('DELETE', `/rest/v1/contas?id=eq.${encodeURIComponent(id)}`); listarContas(); }catch(e){ alert('Erro: '+e.message);} } };
+          if (action==='del') b.onclick = async ()=>{ if(confirm('Excluir conta? (pode falhar se houver dados)')){ try{ await api('DELETE', `/rest/v1/contas?id=eq.${encodeURIComponent(id)}`); listarContas(); }catch(e){ alert('Erro: '+e.message);} } };
           if (action==='edit') b.onclick = async ()=>{
             const novoNome = prompt('Novo nome da conta:'); if(!novoNome) return;
             const novoSaldo = prompt('Novo saldo inicial:', '0'); if(novoSaldo===null) return;
@@ -617,23 +604,13 @@
             catch(e){ alert('Erro: '+e.message); }
           };
         });
-      }catch(e){ $contasLista.innerHTML=`<div class="muted">Erro: ${e.message}</div>`; }
+      }catch(e){ document.getElementById('contasLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`; }
     }
-    document.getElementById('btnCriarConta').addEventListener('click', async ()=>{
-      try{
-        const nome = ($c_nome.value||'').trim();
-        const saldo = Number($c_saldo.value||0);
-        if (!nome) return alert('Informe o nome da conta.');
-        await api('POST','/rest/v1/contas', { nome, saldo_inicial: saldo });
-        $c_nome.value=''; $c_saldo.value='0';
-        listarContas();
-      }catch(e){ alert('Erro: '+e.message); }
-    });
 
-    // ===== Categorias =====
     async function listarCategorias(){
       try{
         const r = await api('GET','/rest/v1/categorias?select=id,nome,tipo,descricao&order=nome.asc');
+        const $categoriasLista = document.getElementById('categoriasLista');
         if (!r?.length) { $categoriasLista.innerHTML = '<div class="muted">Nenhuma categoria. Crie ao lado.</div>'; return; }
         $categoriasLista.innerHTML = r.map(c => `
           <div class="row" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:6px 0;">
@@ -654,21 +631,33 @@
             catch(e){ alert('Erro: '+e.message); }
           };
         });
-      }catch(e){ $categoriasLista.innerHTML=`<div class="muted">Erro: ${e.message}</div>`; }
+      }catch(e){ document.getElementById('categoriasLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`; }
     }
+
+    // criar conta / categoria
+    document.getElementById('btnCriarConta').addEventListener('click', async ()=>{
+      try{
+        const nome = (document.getElementById('c_nome').value||'').trim();
+        const saldo = Number(document.getElementById('c_saldo').value||0);
+        if (!nome) return alert('Informe o nome da conta.');
+        await api('POST','/rest/v1/contas', { nome, saldo_inicial: saldo });
+        document.getElementById('c_nome').value=''; document.getElementById('c_saldo').value='0';
+        listarContas();
+      }catch(e){ alert('Erro: '+e.message); }
+    });
     document.getElementById('btnCriarCategoria').addEventListener('click', async ()=>{
       try{
-        const nome = ($cat_nome.value||'').trim();
-        const tipo = $cat_tipo.value;
-        const descricao = ($cat_desc.value||'').trim();
+        const nome = (document.getElementById('cat_nome').value||'').trim();
+        const tipo = document.getElementById('cat_tipo').value;
+        const descricao = (document.getElementById('cat_desc').value||'').trim();
         if (!nome) return alert('Informe o nome da categoria.');
         await api('POST','/rest/v1/categorias', { nome, tipo, descricao });
-        $cat_nome.value=''; $cat_desc.value='';
+        document.getElementById('cat_nome').value=''; document.getElementById('cat_desc').value='';
         listarCategorias();
       }catch(e){ alert('Erro: '+e.message); }
     });
 
-    // ===== Importar =====
+    // Importar CSV
     function parseCsv(text){
       const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
       const headers = lines.shift().split(',').map(h=>h.trim());
@@ -680,8 +669,8 @@
     }
     document.getElementById('btnImportarCsv').addEventListener('click', async ()=>{
       try{
-        const tipo = $imp_tipo.value;
-        const file = $imp_file.files[0];
+        const tipo = document.getElementById('imp_tipo').value;
+        const file = document.getElementById('imp_file').files[0];
         if (!file) return alert('Selecione um arquivo CSV.');
         const text = await file.text();
         const data = parseCsv(text);
@@ -691,11 +680,23 @@
         if (tipo==='transacoes') path += 'transacoes';
         if (tipo==='recorrencias') path += 'recorrencias';
         await api('POST', path, data);
-        $imp_msg.innerHTML = `<span class="pill">OK</span> ${data.length} registros importados em <strong>${tipo}</strong>.`;
-      }catch(e){ $imp_msg.innerHTML = `<span class="pill">ERRO</span> ${e.message}`; }
+        document.getElementById('imp_msg').innerHTML = `<span class="pill">OK</span> ${data.length} registros importados em <strong>${tipo}</strong>.`;
+      }catch(e){ document.getElementById('imp_msg').innerHTML = `<span class="pill">ERRO</span> ${e.message}`; }
     });
 
-    // ===== Modal Transação =====
+    // Modal
+    const $modal = document.getElementById('modal-backdrop');
+    const f_kind  = document.getElementById('f_kind');
+    const f_desc  = document.getElementById('f_descricao');
+    const f_tipo  = document.getElementById('f_tipo');
+    const f_valor = document.getElementById('f_valor');
+    const f_data  = document.getElementById('f_data');
+    const f_qtd   = document.getElementById('f_qtd');
+    const grpParcelas = document.getElementById('grpParcelas');
+    const grpPeriodicidade = document.getElementById('grpPeriodicidade');
+    const f_periodicidade = document.getElementById('f_periodicidade');
+    const f_status = document.getElementById('f_status');
+
     function openModal(){
       f_kind.value='unica'; f_desc.value=''; f_tipo.value='debito'; f_valor.value='';
       f_data.value=new Date().toISOString().slice(0,10); f_qtd.value='';
@@ -715,7 +716,7 @@
     }
     document.getElementById('m_save').addEventListener('click', async ()=>{
       try{
-        const contaNome = $conta.value;
+        const contaNome = document.getElementById('conta').value;
         const conta_id = await getContaIdByNome(contaNome);
         if (!conta_id) throw new Error('Conta não encontrada');
         const base = {
