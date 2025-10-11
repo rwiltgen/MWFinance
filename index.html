@@ -2,17 +2,20 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.1</title>
+  <title>MWFinance — v1.4.2</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
       --bg:#0b0b10; --card:#141421; --muted:#a8a8b3; --border:#2c2c3f;
       --row:#11111a; --row-alt:#0f0f18; --pos:#75e39a; --neg:#ff8484;
-      --pill:#2a2a3a; --shadow:rgba(0,0,0,.35); --accent:#3c7cff; --white:#fff;
+      --pill:#2a2a3a; --shadow:rgba(0,0,0,.35); --accent:#3c7cff; --accent-strong:#6ea3ff;
+      --link:#9fb8ff; --link-hover:#cfe0ff;
     }
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:#eaeaea}
     h1{margin:0 0 8px;font-size:20px}
+    a{color:var(--link); text-decoration:underline}
+    a:hover{color:var(--link-hover)}
     .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px var(--shadow)}
     .muted{color:var(--muted)}
     .hidden{display:none}
@@ -24,13 +27,25 @@
     .btn-link{background:transparent;border:1px solid var(--pill);padding:10px 12px;border-radius:10px}
     .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
     .btn-danger{background:transparent;border:1px solid #6a2a2a;color:#ff9b9b;padding:6px 10px;border-radius:10px}
-    nav {position:sticky; top:0; z-index:50; margin-bottom:10px;}
-    .nav {display:flex;gap:8px;flex-wrap:wrap; background:#12121c; border:1px solid var(--border); border-radius:12px; padding:8px}
-    .nav a{color:#eaeaea;text-decoration:none;border:1px solid var(--border);padding:8px 10px;border-radius:10px}
-    .nav a.active{background:var(--accent); border-color:var(--accent); color:#fff}
     .split{display:flex;justify-content:space-between;align-items:center}
-    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:12px}
+    .section-title .muted{white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#2a2a3a;border:1px solid #3a3a57;margin-right:6px;font-size:12px}
+
+    /* NAV */
+    nav {position:sticky; top:0; z-index:50; margin-bottom:10px;}
+    .nav-wrap{background:#12121c; border:1px solid var(--border); border-radius:12px; padding:6px}
+    .nav{display:flex;gap:8px;flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none}
+    .nav::-webkit-scrollbar{display:none}
+    .nav a{color:#eaeaea;text-decoration:none;border:1px solid var(--border);padding:8px 10px;border-radius:10px;display:inline-flex;gap:6px;align-items:center;white-space:nowrap;flex:0 0 auto}
+    .nav a.active{background:var(--accent); border-color:var(--accent); color:#fff}
+    .nav .ic{width:18px;height:18px;display:inline-grid;place-items:center;opacity:.9}
+
+    /* MOBILE: ícones compactos */
+    @media (max-width:560px){
+      .nav a{padding:8px; gap:0}
+      .nav a span.label{display:none}
+    }
 
     /* tabela saldos */
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;table-layout:fixed}
@@ -47,6 +62,11 @@
     .tx-list li{margin:6px 0}
     .col-dia{width:56px} .col-saldo{width:110px}
     @media (max-width:600px){body{margin:10px} h1{font-size:18px} table{font-size:13px} .col-saldo{width:96px}}
+
+    /* Corrige desalinhamento do cabeçalho de filtros */
+    .filters{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap}
+    .filters > *{margin:0}
+    .filters .group{display:flex; flex-direction:column; gap:6px}
 
     /* modal */
     #modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
@@ -68,12 +88,12 @@
   </div>
 
   <!-- Navegação -->
-  <nav class="card">
+  <nav class="card nav-wrap">
     <div class="nav">
-      <a href="#/saldos" id="nav-saldos">Saldos</a>
-      <a href="#/contas" id="nav-contas">Contas</a>
-      <a href="#/categorias" id="nav-categorias">Categorias</a>
-      <a href="#/importar" id="nav-importar">Importar</a>
+      <a href="#/saldos" id="nav-saldos"><span class="ic">📊</span><span class="label">Saldos</span></a>
+      <a href="#/contas" id="nav-contas"><span class="ic">💳</span><span class="label">Contas</span></a>
+      <a href="#/categorias" id="nav-categorias"><span class="ic">🏷️</span><span class="label">Categorias</span></a>
+      <a href="#/importar" id="nav-importar"><span class="ic">📥</span><span class="label">Importar</span></a>
     </div>
   </nav>
 
@@ -84,7 +104,6 @@
         <div style="font-weight:700;margin-bottom:6px;">Entrar</div>
         <div class="muted" style="max-width:420px">Use e-mail/senha ou Google. Seus dados ficam isolados por usuário (RLS).</div>
       </div>
-      <div></div>
     </div>
     <div class="row" style="max-width:520px">
       <div style="flex:1">
@@ -108,19 +127,21 @@
   <section id="view-saldos" class="hidden">
     <div class="card">
       <div class="section-title">
-        <div><strong>Saldos Diários</strong></div>
+        <div style="min-width:140px;"><strong>Saldos Diários</strong></div>
         <div class="muted">Acompanhe previsões e materialize recorrências ao efetivar.</div>
       </div>
-      <div class="row">
-        <div>
-          <label for="conta">Conta</label><br/>
+
+      <div class="filters">
+        <div class="group">
+          <label for="conta">Conta</label>
           <select id="conta"></select>
         </div>
-        <div>
-          <label for="mesRef">Mês</label><br/>
+        <div class="group">
+          <label for="mesRef">Mês</label>
           <input id="mesRef" type="month"/>
         </div>
-        <div class="row" style="align-items:flex-end;">
+        <div class="group" style="flex:1"></div>
+        <div class="group" style="flex-direction:row; gap:8px;">
           <button id="btnAtualizar">Atualizar</button>
           <button id="btnMesAnterior" title="Mês anterior">◀︎</button>
           <button id="btnMesSeguinte" title="Próximo mês">▶︎</button>
@@ -207,7 +228,7 @@
           <button id="btnImportarCsv" class="btn-primary">Importar</button>
         </div>
       </div>
-      <div class="muted" style="margin-top:6px;">
+      <div style="margin-top:6px;">
         Templates:
         <a href="./templates/template_categorias.csv" download>template_categorias.csv</a>,
         <a href="./templates/template_transacoes.csv" download>template_transacoes.csv</a>,
@@ -552,7 +573,7 @@
       if (!novoStatus) return;
       const isVirtual = sel.dataset.virtual === 'true';
       if (isVirtual) {
-        await materializar({
+        await api('POST','/rest/v1/transacoes', {
           recorrencia_id: sel.dataset.recorrenciaId || sel.dataset.recorrencia_id,
           conta_id:       sel.dataset.contaId || sel.dataset.conta_id,
           data:           sel.dataset.data,
@@ -564,13 +585,13 @@
         await consultar();
         return;
       }
-      await patchTransacao(sel.dataset.id, { status: novoStatus });
+      await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(sel.dataset.id)}`, { status: novoStatus });
       await consultar();
     }
-    function materializar(obj){ return api('POST','/rest/v1/transacoes', obj); }
-    function patchTransacao(id,body){ return api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`, body); }
     function deleteTransacao(id){ return api('DELETE', `/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`); }
     function deleteRecorrencia(id){ return api('DELETE', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`); }
+    function onDeleteTx(e){ const id=e.currentTarget.dataset.id; if(confirm('Excluir transação?')) deleteTransacao(id).then(consultar).catch(err=>alert(err.message)); }
+    function onDeleteRec(e){ const id=e.currentTarget.dataset.recorrenciaId; if(confirm('Excluir recorrência?')) deleteRecorrencia(id).then(consultar).catch(err=>alert(err.message)); }
     document.getElementById('btnAtualizar').addEventListener('click', consultar);
     document.getElementById('btnMesAnterior').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,-1); consultar(); });
     document.getElementById('btnMesSeguinte').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,+1); consultar(); });
@@ -732,3 +753,4 @@
   </script>
 </body>
 </html>
+

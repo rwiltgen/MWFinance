@@ -29,3 +29,8 @@
 - Corrige desalinhamento na tela de **Saldos** (remove sticky agressivo do header).
 - Templates de importação agora com links para download na aba **Importar**.
 
+## v1.4.2 — UX mobile e alinhamento
+- Navegação mobile com ícones e rolagem horizontal (sem quebra de linha).
+- Links de templates com cor legível no tema escuro.
+- Cabeçalho da seção **Saldos** realinhado (grupo de filtros com baseline uniforme).
+
