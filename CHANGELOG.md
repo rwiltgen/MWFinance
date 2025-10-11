@@ -1,4 +1,9 @@
-## [1.0.0](https://github.com/rwiltgen/MWFinance/compare/v1.3.1...v1.0.0) (2025-10-11)
+## [1.0.0](https://github.com/rwiltgen/MWFinance/compare/v1.4.0...v1.0.0) (2025-10-11)
+## [1.4.0](https://github.com/rwiltgen/MWFinance/compare/v1.3.1...v1.4.0) (2025-10-11)
+
+### Features
+
+* **router:** separa app em views (Saldos, Contas, Categorias, Importar) e adiciona CRUD de contas/categorias e importação CSV ([6dddb75](https://github.com/rwiltgen/MWFinance/commit/6dddb75533aa029515404fe075b34df7b81e5941))
 ## [1.3.1](https://github.com/rwiltgen/MWFinance/compare/v1.3.0...v1.3.1) (2025-10-11)
 
 ### Bug Fixes
