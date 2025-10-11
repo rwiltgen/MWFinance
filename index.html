@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.0</title>
+  <title>MWFinance — v1.4.1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -31,9 +31,10 @@
     .split{display:flex;justify-content:space-between;align-items:center}
     .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#2a2a3a;border:1px solid #3a3a57;margin-right:6px;font-size:12px}
+
     /* tabela saldos */
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;table-layout:fixed}
-    thead th{position:sticky;top:56px;background:var(--card);border-bottom:1px solid var(--border);padding:8px;text-align:left}
+    thead th{background:var(--card);border-bottom:1px solid var(--border);padding:8px;text-align:left}
     tbody tr:nth-child(odd):not(.expander){background:var(--row)}
     tbody tr:nth-child(even):not(.expander){background:var(--row-alt)}
     td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
@@ -46,6 +47,7 @@
     .tx-list li{margin:6px 0}
     .col-dia{width:56px} .col-saldo{width:110px}
     @media (max-width:600px){body{margin:10px} h1{font-size:18px} table{font-size:13px} .col-saldo{width:96px}}
+
     /* modal */
     #modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:1000;}
     #modal-backdrop.open{ display:flex; }
@@ -206,13 +208,16 @@
         </div>
       </div>
       <div class="muted" style="margin-top:6px;">
-        Templates: <code>templates/template_categorias.csv</code>, <code>templates/template_transacoes.csv</code>, <code>templates/template_recorrencias.csv</code>
+        Templates:
+        <a href="./templates/template_categorias.csv" download>template_categorias.csv</a>,
+        <a href="./templates/template_transacoes.csv" download>template_transacoes.csv</a>,
+        <a href="./templates/template_recorrencias.csv" download>template_recorrencias.csv</a>
       </div>
       <div id="imp_msg" style="margin-top:8px;"></div>
     </div>
   </section>
 
-  <!-- Modal Nova Transação (igual versão anterior) -->
+  <!-- Modal Nova Transação -->
   <div id="modal-backdrop" class="hidden">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
@@ -290,7 +295,7 @@
     const $authView  = document.getElementById('authView');
     const $userBar   = document.getElementById('userBar');
     const $userInfo  = document.getElementById('userInfo');
-    // nav/sections
+
     const sections = {
       saldos: document.getElementById('view-saldos'),
       contas: document.getElementById('view-contas'),
@@ -304,7 +309,6 @@
       importar: document.getElementById('nav-importar'),
     };
 
-    // login refs
     const $email  = document.getElementById('email');
     const $pwd    = document.getElementById('password');
     const $btnLogin  = document.getElementById('btnLogin');
@@ -313,7 +317,6 @@
     const $btnLogout = document.getElementById('btnLogout');
     const $authMsg   = document.getElementById('authMsg');
 
-    // saldos refs
     const $conta   = document.getElementById('conta');
     const $mesRef  = document.getElementById('mesRef');
     const $btnAtualizar = document.getElementById('btnAtualizar');
@@ -322,26 +325,22 @@
     const $btnNova = document.getElementById('btnNova');
     const $out     = document.getElementById('output');
 
-    // contas refs
     const $c_nome = document.getElementById('c_nome');
     const $c_saldo = document.getElementById('c_saldo');
     const $btnCriarConta = document.getElementById('btnCriarConta');
     const $contasLista   = document.getElementById('contasLista');
 
-    // categorias refs
     const $cat_nome = document.getElementById('cat_nome');
     const $cat_tipo = document.getElementById('cat_tipo');
     const $cat_desc = document.getElementById('cat_desc');
     const $btnCriarCategoria = document.getElementById('btnCriarCategoria');
     const $categoriasLista   = document.getElementById('categoriasLista');
 
-    // importar refs
     const $imp_tipo = document.getElementById('imp_tipo');
     const $imp_file = document.getElementById('imp_file');
     const $btnImportarCsv = document.getElementById('btnImportarCsv');
     const $imp_msg  = document.getElementById('imp_msg');
 
-    // modal refs
     const $modal = document.getElementById('modal-backdrop');
     const f_kind  = document.getElementById('f_kind');
     const f_desc  = document.getElementById('f_descricao');
@@ -375,13 +374,12 @@
       };
     }
 
-    // ===== Mini router (hash) =====
+    // ===== Router =====
     function showView(view){
       for (const k of Object.keys(sections)) sections[k].classList.add('hidden');
       for (const k of Object.keys(navLinks)) navLinks[k].classList.remove('active');
       (sections[view]||sections.saldos).classList.remove('hidden');
       (navLinks[view]||navLinks.saldos).classList.add('active');
-      // carregamentos por view
       if (view === 'saldos') carregarContas();
       if (view === 'contas') listarContas();
       if (view === 'categorias') listarCategorias();
@@ -411,8 +409,7 @@
         closeModal();
       }
     }
-
-    $btnLogin.addEventListener('click', async ()=>{
+    document.getElementById('btnLogin').addEventListener('click', async ()=>{
       try {
         $authMsg.textContent = 'Entrando...';
         const { error } = await supabase.auth.signInWithPassword({ email: $email.value.trim(), password: $pwd.value });
@@ -422,18 +419,18 @@
         setViewsBySession(session);
       } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
-    $btnSignup.addEventListener('click', async ()=>{
+    document.getElementById('btnSignup').addEventListener('click', async ()=>{
       try {
         const { error } = await supabase.auth.signUp({ email: $email.value.trim(), password: $pwd.value });
         $authMsg.textContent = error ? 'Erro: '+error.message : 'Conta criada. Verifique seu e-mail (se exigido) e faça login.';
       } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
     const PROD_REDIRECT = 'https://mwfinance.vercel.app';
-    $btnGoogle.addEventListener('click', async ()=>{
+    document.getElementById('btnGoogle').addEventListener('click', async ()=>{
       const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{ redirectTo: PROD_REDIRECT } });
       if (error) alert(error.message);
     });
-    $btnLogout.addEventListener('click', async ()=>{ await supabase.auth.signOut(); setViewsBySession(null); });
+    document.getElementById('btnLogout').addEventListener('click', async ()=>{ await supabase.auth.signOut(); setViewsBySession(null); });
     supabase.auth.onAuthStateChange((_event, session)=>{
       setViewsBySession(session);
       if (location.hash && session?.access_token) history.replaceState(null,'',location.pathname+location.search);
@@ -652,7 +649,7 @@
       }catch(e){ alert('Erro: '+e.message); }
     });
 
-    // ===== View: Importar =====
+    // ===== Importar =====
     function parseCsv(text){
       const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
       const headers = lines.shift().split(',').map(h=>h.trim());
@@ -662,7 +659,7 @@
         return obj;
       });
     }
-    $btnImportarCsv.addEventListener('click', async ()=>{
+    document.getElementById('btnImportarCsv').addEventListener('click', async ()=>{
       try{
         const tipo = $imp_tipo.value;
         const file = $imp_file.files[0];
@@ -674,12 +671,12 @@
         if (tipo==='categorias') path += 'categorias';
         if (tipo==='transacoes') path += 'transacoes';
         if (tipo==='recorrencias') path += 'recorrencias';
-        const r = await api('POST', path, data);
+        await api('POST', path, data);
         $imp_msg.innerHTML = `<span class="pill">OK</span> ${data.length} registros importados em <strong>${tipo}</strong>.`;
       }catch(e){ $imp_msg.innerHTML = `<span class="pill">ERRO</span> ${e.message}`; }
     });
 
-    // ===== Modal de nova transação (reuso da versão anterior) =====
+    // ===== Modal Transação =====
     function openModal(){
       f_kind.value='unica'; f_desc.value=''; f_tipo.value='debito'; f_valor.value='';
       f_data.value=new Date().toISOString().slice(0,10); f_qtd.value='';
@@ -702,7 +699,6 @@
         const contaNome = $conta.value;
         const conta_id = await getContaIdByNome(contaNome);
         if (!conta_id) throw new Error('Conta não encontrada');
-
         const base = {
           conta_id,
           descricao: (f_desc.value||'').trim(),
@@ -716,7 +712,7 @@
         if (!base.data) throw new Error('Informe a data');
 
         if (f_kind.value === 'unica'){
-          await materializar(base);
+          await api('POST','/rest/v1/transacoes', base);
         } else if (f_kind.value === 'parcelada'){
           const n = parseInt(f_qtd.value,10); if(!n||n<2) throw new Error('Qtd de parcelas (>=2)');
           const [y,m,d] = base.data.split('-').map(Number);
@@ -733,7 +729,6 @@
         closeModal(); await consultar();
       }catch(err){ alert('Erro ao salvar: '+err.message); }
     });
-
   </script>
 </body>
 </html>

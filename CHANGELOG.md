@@ -23,3 +23,9 @@
 ### Reverts
 
 * Revert "UX: botão Nova Transação" ([7c475ba](https://github.com/rwiltgen/MWFinance/commit/7c475ba61844b33fea530fe3f9fead3710c6aaad))
+
+## v1.4.1 — Hotfix: categorias + UX
+- Cria tabela `public.categorias` com RLS (policies idempotentes).
+- Corrige desalinhamento na tela de **Saldos** (remove sticky agressivo do header).
+- Templates de importação agora com links para download na aba **Importar**.
+
