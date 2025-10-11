@@ -10,16 +10,19 @@
       --row:#11111a; --row-alt:#0f0f18; --pos:#75e39a; --neg:#ff8484;
       --pill:#2a2a3a; --shadow:rgba(0,0,0,.35); --accent:#3c7cff;
     }
-    *{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:#eaeaea}
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:#eaeaea}
     h1{margin:0 0 8px;font-size:20px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px var(--shadow)}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
     label{font-size:13px;opacity:.9}
     input,select,button{background:#1b1b2b;color:#eaeaea;border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:14px}
-    button{cursor:pointer;font-weight:600} button[disabled]{opacity:.5;cursor:not-allowed}
+    button{cursor:pointer;font-weight:600}
+    button[disabled]{opacity:.5;cursor:not-allowed}
     .btn-link{background:transparent;border:1px solid var(--pill);padding:6px 10px;border-radius:10px}
     .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
     .btn-danger{background:transparent;border:1px solid #6a2a2a;color:#ff9b9b;padding:6px 10px;border-radius:10px}
+
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;table-layout:fixed}
     thead th{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);padding:8px;text-align:left}
     tbody tr:nth-child(odd):not(.expander){background:var(--row)}
@@ -31,7 +34,8 @@
     .day-chip{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#1b1b2b;border:1px solid var(--border);font-weight:700}
     tr.expander td{padding:0;border-bottom:none}
     .expand-card{background:#12121c;border:1px solid #26263a;border-radius:10px;margin:8px 0 16px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-    .tx-list{list-style:disc;padding-left:18px;margin:0} .tx-list li{margin:6px 0}
+    .tx-list{list-style:disc;padding-left:18px;margin:0}
+    .tx-list li{margin:6px 0}
     .col-dia{width:56px} .col-saldo{width:110px}
     @media (max-width:600px){body{margin:10px} h1{font-size:18px} table{font-size:13px} .col-saldo{width:96px}}
 
@@ -39,6 +43,18 @@
     .auth {max-width:460px;margin:50px auto}
     .split {display:flex;justify-content:space-between;align-items:center}
     .hidden{display:none}
+
+    /* ===== MODAL ===== */
+    #modal-backdrop{
+      position:fixed; inset:0; background:rgba(0,0,0,.6);
+      display:none; align-items:center; justify-content:center; z-index:1000;
+    }
+    #modal-backdrop.open{ display:flex; }
+    .modal{
+      width:100%; max-width:560px; background:var(--card);
+      border:1px solid var(--border); border-radius:16px; padding:16px;
+      box-shadow:0 12px 40px rgba(0,0,0,.5)
+    }
   </style>
 </head>
 <body>
@@ -101,9 +117,9 @@
     </div>
   </div>
 
-  <!-- Modal Nova Transação (igual à sua v2 já aprovada) -->
-  <div id="modal" class="hidden" style="position:fixed; inset:0; background:rgba(0,0,0,.6); display:flex; align-items:center; justify-content:center; z-index:1000;">
-    <div class="modal" style="width:100%; max-width:560px; background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px;">
+  <!-- Modal Nova Transação -->
+  <div id="modal-backdrop" class="hidden"><!-- controlado por .open -->
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
       <div class="row" style="flex-direction:column; align-items:stretch;">
         <label>Tipo do lançamento</label>
@@ -167,7 +183,7 @@
   <script src="./config.js"></script>
   <script src="https://esm.sh/@supabase/supabase-js@2"></script>
   <script>
-    // ====== Setup Supabase client (usa anon só para iniciar a SDK) ======
+    // ====== Supabase client ======
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true }
@@ -195,7 +211,7 @@
     const $btnNova = document.getElementById('btnNova');
     const $out     = document.getElementById('output');
 
-    const $modal   = document.getElementById('modal');
+    const $modalBackdrop = document.getElementById('modal-backdrop');
     const f_kind  = document.getElementById('f_kind');
     const f_desc  = document.getElementById('f_descricao');
     const f_tipo  = document.getElementById('f_tipo');
@@ -207,14 +223,36 @@
     const f_periodicidade = document.getElementById('f_periodicidade');
     const f_status = document.getElementById('f_status');
 
+    function openModal(){
+      // reset campos
+      f_kind.value='unica'; f_desc.value=''; f_tipo.value='debito'; f_valor.value='';
+      f_data.value=new Date().toISOString().slice(0,10); f_qtd.value='';
+      grpParcelas.classList.add('hidden'); grpPeriodicidade.classList.add('hidden');
+      document.getElementById('m_hint').textContent = '';
+      $modalBackdrop.classList.add('open');
+      $modalBackdrop.classList.remove('hidden');
+    }
+    function closeModal(){
+      $modalBackdrop.classList.remove('open');
+      $modalBackdrop.classList.add('hidden');
+    }
+
+    // Fecha ao clicar no fundo
+    $modalBackdrop.addEventListener('click', (e)=>{
+      if (e.target === $modalBackdrop) closeModal();
+    });
+    // Fecha com ESC
+    window.addEventListener('keydown', (e)=>{
+      if (e.key === 'Escape' && $modalBackdrop.classList.contains('open')) closeModal();
+    });
+
     // ====== Helpers ======
     function money(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
     function dayOnly(iso){ const d=new Date(iso); return isNaN(d)?iso:d.getUTCDate(); }
     function classSaldo(v){ return Number(v||0)<0?'saldo saldo-neg':'saldo saldo-pos'; }
     function addMonthsYM(ym,delta){ const [y,m]=ym.split('-').map(Number); const d=new Date(Date.UTC(y,m-1,1)); d.setUTCMonth(d.getUTCMonth()+delta); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
-    const now = new Date(); document.getElementById('mesRef').value = now.toISOString().slice(0,7); f_data.value = new Date().toISOString().slice(0,10);
+    const now = new Date(); document.getElementById('mesRef').value = now.toISOString().slice(0,7);
 
-    // Pega token atual do usuário logado
     async function getAuthHeaders(){
       const { data:{ session } } = await supabase.auth.getSession();
       if (!session) throw new Error('Sem sessão');
@@ -225,7 +263,7 @@
       };
     }
 
-    // ====== AUTH actions ======
+    // ====== AUTH ======
     $btnLogin.addEventListener('click', async ()=>{
       $authMsg.textContent = 'Entrando...';
       const { error } = await supabase.auth.signInWithPassword({ email: $email.value.trim(), password: $pwd.value });
@@ -251,24 +289,24 @@
       onAuthChanged();
     });
 
-    // Detecta mudanças de sessão
     supabase.auth.onAuthStateChange((_event, _session)=> onAuthChanged());
 
     async function onAuthChanged(){
-      const { data:{ user, session } } = await supabase.auth.getSession();
+      const { data:{ user } } = await supabase.auth.getSession();
       const logged = !!user;
-      document.getElementById('authView').classList.toggle('hidden', logged);
-      document.getElementById('appView').classList.toggle('hidden', !logged);
-      document.getElementById('userBar').classList.toggle('hidden', !logged);
+      $authView.classList.toggle('hidden', logged);
+      $appView.classList.toggle('hidden', !logged);
+      $userBar.classList.toggle('hidden', !logged);
       if (logged){
         $userInfo.textContent = user.email || 'Usuário';
         carregarContas().catch(err=> $out.innerHTML = `<div class="muted">Erro: ${err.message}</div>`);
       } else {
         $userInfo.textContent = '—';
+        closeModal(); // garante que a modal não fique aberta ao sair
       }
     }
 
-    // ====== Data access (agora com Bearer = access_token) ======
+    // ====== Data access ======
     async function carregarContas() {
       const headers = await getAuthHeaders();
       const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
@@ -397,32 +435,24 @@
         method, headers, body: body? JSON.stringify(body): null
       });
       if (!res.ok) throw new Error(await res.text());
-      return res.json?.() ?? null;
+      try { return await res.json(); } catch { return null; }
     }
-    function getContaIdByNome(nome){ return api('GET', `/rest/v1/contas?select=id&nome=eq.${encodeURIComponent(nome)}`); }
+    async function getContaIdByNome(nome){
+      const r = await api('GET', `/rest/v1/contas?select=id&nome=eq.${encodeURIComponent(nome)}`);
+      return Array.isArray(r) && r[0]?.id;
+    }
     function materializar(obj){ return api('POST','/rest/v1/transacoes', obj); }
     function patchTransacao(id,body){ return api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`, body); }
     function deleteTransacao(id){ return api('DELETE', `/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`); }
     function deleteRecorrencia(id){ return api('DELETE', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`); }
 
     // Nova transação (modal)
-    document.getElementById('btnNova').addEventListener('click', ()=>{
-      document.getElementById('modal').classList.remove('hidden');
-      f_kind.value='unica'; f_desc.value=''; f_tipo.value='debito'; f_valor.value='';
-      f_data.value=new Date().toISOString().slice(0,10); f_qtd.value='';
-      grpParcelas.classList.add('hidden'); grpPeriodicidade.classList.add('hidden');
-    });
-    document.getElementById('m_cancel').addEventListener('click', ()=> document.getElementById('modal').classList.add('hidden'));
-    f_kind.addEventListener('change', ()=>{
-      grpParcelas.classList.toggle('hidden', f_kind.value!=='parcelada');
-      grpPeriodicidade.classList.toggle('hidden', f_kind.value!=='recorrente');
-    });
-
+    document.getElementById('btnNova').addEventListener('click', openModal);
+    document.getElementById('m_cancel').addEventListener('click', closeModal);
     document.getElementById('m_save').addEventListener('click', async ()=>{
       try{
         const contaNome = $conta.value;
-        const contaRes = await getContaIdByNome(contaNome);
-        const conta_id = Array.isArray(contaRes) && contaRes[0]?.id;
+        const conta_id = await getContaIdByNome(contaNome);
         if (!conta_id) throw new Error('Conta não encontrada');
 
         const base = {
@@ -447,16 +477,20 @@
           }
           await api('POST','/rest/v1/transacoes', arr);
         } else {
-          // recorrente
           await api('POST','/rest/v1/recorrencias', {
             conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor,
             inicio: base.data, fim: null, periodicidade: 'mensal'
           });
         }
 
-        document.getElementById('modal').classList.add('hidden');
+        closeModal();
         await consultar();
       }catch(err){ alert('Erro ao salvar: '+err.message); }
+    });
+
+    f_kind.addEventListener('change', ()=>{
+      grpParcelas.classList.toggle('hidden', f_kind.value!=='parcelada');
+      grpPeriodicidade.classList.toggle('hidden', f_kind.value!=='recorrente');
     });
 
     // Deletar
@@ -474,7 +508,7 @@
     document.getElementById('btnMesAnterior').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,-1); consultar(); });
     document.getElementById('btnMesSeguinte').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,+1); consultar(); });
 
-    // Init: checa sessão
+    // Init
     onAuthChanged();
   </script>
 </body>
