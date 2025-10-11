@@ -44,3 +44,7 @@
 - `boot()` não força navegação para `#/saldos` quando não logado.
 - Templates de importação garantidos como `.csv` (links corrigidos).
 
+## v1.4.5 — Navegação responsiva
+- Menu passa a usar `navigate(view)` para trocar de seção de forma imediata.
+- `hashchange` fica como fallback; guarda impede navegação sem sessão.
+
