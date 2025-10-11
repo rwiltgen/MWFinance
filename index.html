@@ -8,7 +8,7 @@
     :root {
       --bg: #0b0b10; --card:#141421; --muted:#a8a8b3; --border:#2c2c3f;
       --row:#11111a; --row-alt:#0f0f18; --pos:#75e39a; --neg:#ff8484;
-      --pill:#2a2a3a; --shadow:rgba(0,0,0,.35); --accent:#3c7cff;
+      --pill:#2a2a3a; --shadow:rgba(0,0,0,.35); --accent:#3c7cff; --white:#fff;
     }
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:#eaeaea}
@@ -16,12 +16,16 @@
     .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px var(--shadow)}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
     label{font-size:13px;opacity:.9}
-    input,select,button{background:#1b1b2b;color:#eaeaea;border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:14px}
+    input,select,button{background:#1b1b2b;color:#eaeaea;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px}
+    input::placeholder{color:#8a8aa5}
     button{cursor:pointer;font-weight:600}
     button[disabled]{opacity:.5;cursor:not-allowed}
-    .btn-link{background:transparent;border:1px solid var(--pill);padding:6px 10px;border-radius:10px}
+    .btn-link{background:transparent;border:1px solid var(--pill);padding:10px 12px;border-radius:10px}
     .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
     .btn-danger{background:transparent;border:1px solid #6a2a2a;color:#ff9b9b;padding:6px 10px;border-radius:10px}
+    .muted{color:var(--muted)}
+    .split {display:flex;justify-content:space-between;align-items:center}
+    .hidden{display:none}
 
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;table-layout:fixed}
     thead th{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--border);padding:8px;text-align:left}
@@ -30,7 +34,7 @@
     td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
     .saldo{font-weight:700;text-align:right;white-space:nowrap}
     .saldo-pos{color:var(--pos)} .saldo-neg{color:var(--neg)} .row-neg{outline:2px solid rgba(255,132,132,.18)}
-    .muted{color:var(--muted)} .tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+    .tools{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
     .day-chip{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#1b1b2b;border:1px solid var(--border);font-weight:700}
     tr.expander td{padding:0;border-bottom:none}
     .expand-card{background:#12121c;border:1px solid #26263a;border-radius:10px;margin:8px 0 16px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
@@ -39,10 +43,21 @@
     .col-dia{width:56px} .col-saldo{width:110px}
     @media (max-width:600px){body{margin:10px} h1{font-size:18px} table{font-size:13px} .col-saldo{width:96px}}
 
-    /* Auth card */
-    .auth {max-width:460px;margin:50px auto}
-    .split {display:flex;justify-content:space-between;align-items:center}
-    .hidden{display:none}
+    /* ===== Login bonito ===== */
+    .auth {max-width:420px;margin:56px auto 0; padding:18px 18px 14px}
+    .brand {display:flex;align-items:center;gap:10px;margin-bottom:10px}
+    .brand .logo {width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#3c7cff,#6a8dff);display:flex;align-items:center;justify-content:center;color:var(--white);font-weight:800}
+    .brand h3 {margin:0;font-size:18px}
+    .field {display:flex;flex-direction:column;gap:6px;width:100%}
+    .stack {display:flex;flex-direction:column;gap:10px;align-items:stretch}
+    .actions {display:flex;gap:8px;align-items:center}
+    .divider {display:flex;align-items:center;gap:8px;margin:8px 0;color:#8a8aa5}
+    .divider::before,.divider::after{content:"";height:1px;flex:1;background:#2c2c3f}
+    .btn-google{
+      display:flex;align-items:center;justify-content:center;gap:10px;
+      background:#fff;color:#2d2d2d;border:1px solid #e5e5e5;border-radius:10px;
+    }
+    .btn-google svg{width:18px;height:18px;display:block}
 
     /* ===== MODAL ===== */
     #modal-backdrop{
@@ -72,23 +87,42 @@
 
   <!-- Tela de Login -->
   <div id="authView" class="card auth">
-    <h3 style="margin-top:0">Entrar</h3>
-    <div class="row" style="flex-direction:column; align-items:stretch;">
-      <label>E-mail</label>
-      <input id="email" type="email" placeholder="voce@exemplo.com"/>
+    <div class="brand">
+      <div class="logo">MW</div>
+      <h3>Entrar no MWFinance</h3>
+    </div>
 
-      <label>Senha</label>
-      <input id="password" type="password" placeholder="••••••••"/>
+    <div class="stack">
+      <div class="field">
+        <label>E-mail</label>
+        <input id="email" type="email" placeholder="voce@exemplo.com"/>
+      </div>
 
-      <div class="row" style="gap:8px; margin-top:8px;">
-        <button id="btnLogin" class="btn-primary">Entrar</button>
+      <div class="field">
+        <label>Senha</label>
+        <input id="password" type="password" placeholder="••••••••"/>
+      </div>
+
+      <div class="actions">
+        <button id="btnLogin" class="btn-primary" style="flex:1">Entrar</button>
         <button id="btnSignup" class="btn-link">Criar conta</button>
       </div>
 
-      <div style="text-align:center; margin:12px 0;" class="muted">ou</div>
-      <button id="btnGoogle" class="btn-link">Entrar com Google</button>
+      <div class="divider">ou</div>
+
+      <button id="btnGoogle" class="btn-google">
+        <!-- G colorido -->
+        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 31.7 29.3 35 24 35 16.8 35 11 29.2 11 22s5.8-13 13-13c3.3 0 6.3 1.2 8.6 3.2l5.7-5.7C34.5 3.5 29.5 1.5 24 1.5 11.7 1.5 1.5 11.7 1.5 24S11.7 46.5 24 46.5 46.5 36.3 46.5 24c0-1.2-.1-2.3-.3-3.5z"/>
+          <path fill="#FF3D00" d="M6.3 14.6l6.6 4.8C14.6 16.3 18.9 13 24 13c3.3 0 6.3 1.2 8.6 3.2l5.7-5.7C34.5 3.5 29.5 1.5 24 1.5 16 1.5 8.9 5.9 6.3 14.6z"/>
+          <path fill="#4CAF50" d="M24 46.5c5.2 0 10-1.8 13.7-4.9l-6.3-5.2C29.2 38.3 26.7 39 24 39c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C8.9 42.2 15.9 46.5 24 46.5z"/>
+          <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-1.3 3.7-5.7 7-11.3 7-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C8.9 42.2 15.9 46.5 24 46.5 36.3 46.5 46.5 36.3 46.5 24c0-1.2-.1-2.3-.3-3.5z"/>
+        </svg>
+        <span>Entrar com Google</span>
+      </button>
+
+      <p id="authMsg" class="muted" style="margin-top:4px;"></p>
     </div>
-    <p id="authMsg" class="muted" style="margin-top:8px;"></p>
   </div>
 
   <!-- App (só aparece logado) -->
@@ -118,7 +152,7 @@
   </div>
 
   <!-- Modal Nova Transação -->
-  <div id="modal-backdrop" class="hidden"><!-- controlado por .open -->
+  <div id="modal-backdrop" class="hidden">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
       <div class="row" style="flex-direction:column; align-items:stretch;">
@@ -179,13 +213,16 @@
     </div>
   </div>
 
-  <!-- Config + Supabase JS -->
+  <!-- config.js precisa vir antes do módulo para expor window.CONFIG -->
   <script src="./config.js"></script>
-  <script src="https://esm.sh/@supabase/supabase-js@2"></script>
-  <script>
+
+  <!-- Script principal como MÓDULO ES: importa a SDK corretamente -->
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
     // ====== Supabase client ======
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: { persistSession: true, autoRefreshToken: true }
     });
 
@@ -223,29 +260,6 @@
     const f_periodicidade = document.getElementById('f_periodicidade');
     const f_status = document.getElementById('f_status');
 
-    function openModal(){
-      // reset campos
-      f_kind.value='unica'; f_desc.value=''; f_tipo.value='debito'; f_valor.value='';
-      f_data.value=new Date().toISOString().slice(0,10); f_qtd.value='';
-      grpParcelas.classList.add('hidden'); grpPeriodicidade.classList.add('hidden');
-      document.getElementById('m_hint').textContent = '';
-      $modalBackdrop.classList.add('open');
-      $modalBackdrop.classList.remove('hidden');
-    }
-    function closeModal(){
-      $modalBackdrop.classList.remove('open');
-      $modalBackdrop.classList.add('hidden');
-    }
-
-    // Fecha ao clicar no fundo
-    $modalBackdrop.addEventListener('click', (e)=>{
-      if (e.target === $modalBackdrop) closeModal();
-    });
-    // Fecha com ESC
-    window.addEventListener('keydown', (e)=>{
-      if (e.key === 'Escape' && $modalBackdrop.classList.contains('open')) closeModal();
-    });
-
     // ====== Helpers ======
     function money(v){ return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
     function dayOnly(iso){ const d=new Date(iso); return isNaN(d)?iso:d.getUTCDate(); }
@@ -265,22 +279,29 @@
 
     // ====== AUTH ======
     $btnLogin.addEventListener('click', async ()=>{
-      $authMsg.textContent = 'Entrando...';
-      const { error } = await supabase.auth.signInWithPassword({ email: $email.value.trim(), password: $pwd.value });
-      if (error) { $authMsg.textContent = 'Erro: ' + error.message; return; }
-      $authMsg.textContent = '';
-      onAuthChanged();
+      try {
+        $authMsg.textContent = 'Entrando...';
+        const { error } = await supabase.auth.signInWithPassword({ email: $email.value.trim(), password: $pwd.value });
+        if (error) { $authMsg.textContent = 'Erro: ' + error.message; return; }
+        $authMsg.textContent = '';
+        onAuthChanged();
+      } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
 
     $btnSignup.addEventListener('click', async ()=>{
-      $authMsg.textContent = 'Criando...';
-      const { error } = await supabase.auth.signUp({ email: $email.value.trim(), password: $pwd.value });
-      if (error) { $authMsg.textContent = 'Erro: ' + error.message; return; }
-      $authMsg.textContent = 'Conta criada. Verifique seu e-mail (se exigido) e faça login.';
+      try {
+        $authMsg.textContent = 'Criando...';
+        const { error } = await supabase.auth.signUp({ email: $email.value.trim(), password: $pwd.value });
+        if (error) { $authMsg.textContent = 'Erro: ' + error.message; return; }
+        $authMsg.textContent = 'Conta criada. Verifique seu e-mail (se exigido) e faça login.';
+      } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
 
     $btnGoogle.addEventListener('click', async ()=>{
-      const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options:{ redirectTo: window.location.origin } });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options:{ redirectTo: window.location.origin }
+      });
       if (error) alert(error.message);
     });
 
@@ -296,13 +317,13 @@
       const logged = !!user;
       $authView.classList.toggle('hidden', logged);
       $appView.classList.toggle('hidden', !logged);
-      $userBar.classList.toggle('hidden', !logged);
+      document.getElementById('userBar').classList.toggle('hidden', !logged);
       if (logged){
-        $userInfo.textContent = user.email || 'Usuário';
+        document.getElementById('userInfo').textContent = user.email || 'Usuário';
         carregarContas().catch(err=> $out.innerHTML = `<div class="muted">Erro: ${err.message}</div>`);
       } else {
-        $userInfo.textContent = '—';
-        closeModal(); // garante que a modal não fique aberta ao sair
+        document.getElementById('userInfo').textContent = '—';
+        closeModal();
       }
     }
 
@@ -446,9 +467,24 @@
     function deleteTransacao(id){ return api('DELETE', `/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`); }
     function deleteRecorrencia(id){ return api('DELETE', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`); }
 
-    // Nova transação (modal)
+    // ====== Modal ======
+    function openModal(){
+      f_kind.value='unica'; f_desc.value=''; f_tipo.value='debito'; f_valor.value='';
+      f_data.value=new Date().toISOString().slice(0,10); f_qtd.value='';
+      grpParcelas.classList.add('hidden'); grpPeriodicidade.classList.add('hidden');
+      document.getElementById('m_hint').textContent = '';
+      $modalBackdrop.classList.add('open');
+      $modalBackdrop.classList.remove('hidden');
+    }
+    function closeModal(){
+      $modalBackdrop.classList.remove('open');
+      $modalBackdrop.classList.add('hidden');
+    }
     document.getElementById('btnNova').addEventListener('click', openModal);
     document.getElementById('m_cancel').addEventListener('click', closeModal);
+    $modalBackdrop.addEventListener('click', (e)=>{ if(e.target === $modalBackdrop) closeModal(); });
+    window.addEventListener('keydown', (e)=>{ if (e.key === 'Escape' && $modalBackdrop.classList.contains('open')) closeModal(); });
+
     document.getElementById('m_save').addEventListener('click', async ()=>{
       try{
         const contaNome = $conta.value;
@@ -486,11 +522,6 @@
         closeModal();
         await consultar();
       }catch(err){ alert('Erro ao salvar: '+err.message); }
-    });
-
-    f_kind.addEventListener('change', ()=>{
-      grpParcelas.classList.toggle('hidden', f_kind.value!=='parcelada');
-      grpPeriodicidade.classList.toggle('hidden', f_kind.value!=='recorrente');
     });
 
     // Deletar
