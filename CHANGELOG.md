@@ -34,3 +34,8 @@
 - Links de templates com cor legível no tema escuro.
 - Cabeçalho da seção **Saldos** realinhado (grupo de filtros com baseline uniforme).
 
+
+## v1.4.3 — Correções de acesso e templates
+- Esconde navegação antes do login (menus só aparecem após sessão autenticada).
+- Links de download dos templates apontando corretamente para arquivos `.csv`.
+

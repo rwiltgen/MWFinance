@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.2</title>
+  <title>MWFinance — v1.4.3</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {
@@ -40,12 +40,7 @@
     .nav a{color:#eaeaea;text-decoration:none;border:1px solid var(--border);padding:8px 10px;border-radius:10px;display:inline-flex;gap:6px;align-items:center;white-space:nowrap;flex:0 0 auto}
     .nav a.active{background:var(--accent); border-color:var(--accent); color:#fff}
     .nav .ic{width:18px;height:18px;display:inline-grid;place-items:center;opacity:.9}
-
-    /* MOBILE: ícones compactos */
-    @media (max-width:560px){
-      .nav a{padding:8px; gap:0}
-      .nav a span.label{display:none}
-    }
+    @media (max-width:560px){ .nav a{padding:8px; gap:0} .nav a span.label{display:none} }
 
     /* tabela saldos */
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;table-layout:fixed}
@@ -63,7 +58,7 @@
     .col-dia{width:56px} .col-saldo{width:110px}
     @media (max-width:600px){body{margin:10px} h1{font-size:18px} table{font-size:13px} .col-saldo{width:96px}}
 
-    /* Corrige desalinhamento do cabeçalho de filtros */
+    /* filtros saldos */
     .filters{display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap}
     .filters > *{margin:0}
     .filters .group{display:flex; flex-direction:column; gap:6px}
@@ -81,14 +76,12 @@
   <div id="userBar" class="card hidden">
     <div class="split">
       <div id="userInfo" class="muted">—</div>
-      <div>
-        <button id="btnLogout" class="btn-link">Sair</button>
-      </div>
+      <div><button id="btnLogout" class="btn-link">Sair</button></div>
     </div>
   </div>
 
-  <!-- Navegação -->
-  <nav class="card nav-wrap">
+  <!-- Navegação (fica oculta até logar) -->
+  <nav id="navBar" class="card nav-wrap hidden">
     <div class="nav">
       <a href="#/saldos" id="nav-saldos"><span class="ic">📊</span><span class="label">Saldos</span></a>
       <a href="#/contas" id="nav-contas"><span class="ic">💳</span><span class="label">Contas</span></a>
@@ -311,11 +304,12 @@
       auth: { persistSession: true, autoRefreshToken: true }
     });
 
-    // ===== Estado e refs =====
+    // ===== Estado/refs =====
     let currentSession = null;
     const $authView  = document.getElementById('authView');
     const $userBar   = document.getElementById('userBar');
     const $userInfo  = document.getElementById('userInfo');
+    const $navBar    = document.getElementById('navBar');
 
     const sections = {
       saldos: document.getElementById('view-saldos'),
@@ -418,8 +412,12 @@
     function setViewsBySession(session){
       currentSession = session;
       const logged = !!session?.user;
+
+      // mostra/oculta login e navegação
       $authView.classList.toggle('hidden', logged);
       $userBar.classList.toggle('hidden', !logged);
+      $navBar.classList.toggle('hidden', !logged);
+
       if (logged){
         $userInfo.textContent = session.user.email || 'Usuário';
         showView(currentViewFromHash());
@@ -443,7 +441,7 @@
     document.getElementById('btnSignup').addEventListener('click', async ()=>{
       try {
         const { error } = await supabase.auth.signUp({ email: $email.value.trim(), password: $pwd.value });
-        $authMsg.textContent = error ? 'Erro: '+error.message : 'Conta criada. Verifique seu e-mail (se exigido) e faça login.';
+        $authMsg.textContent = error ? 'Erro: '+error.message : 'Conta criada. Verifique seu e-mail e faça login.';
       } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
     const PROD_REDIRECT = 'https://mwfinance.vercel.app';
@@ -596,7 +594,7 @@
     document.getElementById('btnMesAnterior').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,-1); consultar(); });
     document.getElementById('btnMesSeguinte').addEventListener('click', ()=>{ $mesRef.value = addMonthsYM($mesRef.value,+1); consultar(); });
 
-    // ===== View: Contas =====
+    // ===== Contas =====
     async function listarContas(){
       try{
         const r = await api('GET','/rest/v1/contas?select=id,nome,saldo_inicial&order=nome.asc');
@@ -632,7 +630,7 @@
       }catch(e){ alert('Erro: '+e.message); }
     });
 
-    // ===== View: Categorias =====
+    // ===== Categorias =====
     async function listarCategorias(){
       try{
         const r = await api('GET','/rest/v1/categorias?select=id,nome,tipo,descricao&order=nome.asc');
@@ -753,4 +751,3 @@
   </script>
 </body>
 </html>
-
