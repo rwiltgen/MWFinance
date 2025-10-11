@@ -70,6 +70,8 @@
       border:1px solid var(--border); border-radius:16px; padding:16px;
       box-shadow:0 12px 40px rgba(0,0,0,.5)
     }
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#2a2a3a;border:1px solid #3a3a57;margin-right:6px;font-size:12px}
+    .tx-actions{display:inline-flex;gap:8px;margin-left:8px;vertical-align:middle}
   </style>
 </head>
 <body>
@@ -226,7 +228,7 @@
       auth: { persistSession: true, autoRefreshToken: true }
     });
 
-    // ====== Estado de sessão (evita data races) ======
+    // ====== Estado de sessão ======
     let currentSession = null;
 
     // ====== UI refs ======
@@ -292,6 +294,7 @@
       }
       if (!currentSession) throw new Error('Sem sessão');
       return {
+        apikey: SUPABASE_ANON_KEY,                          // <<<<<<<<<<<<<< ESSENCIAL
         Authorization: `Bearer ${currentSession.access_token}`,
         'Content-Type': 'application/json',
         Prefer: 'return=representation'
@@ -319,7 +322,7 @@
       } catch (e) { $authMsg.textContent = 'Erro inesperado: '+e.message; }
     });
 
-    const PROD_REDIRECT = 'https://mwfinance.vercel.app'; // ajuste se usar domínio custom
+    const PROD_REDIRECT = 'https://mwfinance.vercel.app';
     $btnGoogle.addEventListener('click', async ()=>{
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -333,20 +336,16 @@
       setViewsBySession(null);
     });
 
-    // Evento de auth (login/logout/refresh)
     supabase.auth.onAuthStateChange((_event, session)=>{
       setViewsBySession(session);
-      // Após OAuth, a URL pode vir com #access_token=... — limpar pra ficar bonita
       if (location.hash && session?.access_token) {
         history.replaceState(null, '', location.pathname + location.search);
       }
     });
 
-    // ====== Boot de sessão (pega a sessão inicial APÓS redirect) ======
     (async function boot(){
       const { data:{ session } } = await supabase.auth.getSession();
       setViewsBySession(session);
-      // limpa hash se veio do OAuth
       if (location.hash && session?.access_token) {
         history.replaceState(null, '', location.pathname + location.search);
       }
@@ -355,7 +354,7 @@
     // ====== Data access ======
     async function carregarContas() {
       const headers = await getAuthHeaders();
-      const url = `${CONFIG.SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
+      const url = `${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`;
       const res = await fetch(url, { headers });
       if (!res.ok) throw new Error((await res.text()) || (res.status+' '+res.statusText));
       const contas = await res.json();
@@ -369,7 +368,7 @@
       const conta = $conta.value, ym = $mesRef.value;
       if (!conta || !ym) { $out.innerHTML = `<div>Selecione conta e mês.</div>`; return; }
       const referencia = ym + '-01';
-      const url = `${CONFIG.SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
+      const url = `${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`;
       $out.innerHTML = `<div class="muted">Consultando saldos…</div>`;
       const res = await fetch(url, { method:'POST', headers, body: JSON.stringify({ conta_nome: conta, referencia }) });
       if (!res.ok) { const txt=await res.text(); $out.innerHTML = `<div class="muted">Erro: ${txt}</div>`; return; }
@@ -477,7 +476,7 @@
     // ====== CRUD via REST com token do usuário ======
     async function api(method, path, body=null){
       const headers = await getAuthHeaders();
-      const res = await fetch(`${CONFIG.SUPABASE_URL}${path}`, {
+      const res = await fetch(`${SUPABASE_URL}${path}`, {
         method, headers, body: body? JSON.stringify(body): null
       });
       if (!res.ok) throw new Error(await res.text());
