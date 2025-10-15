@@ -2,234 +2,230 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.8</title>
+  <title>MWFinance — v1.4.9</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root{--bg:#0b0b10;--card:#141421;--muted:#a8a8b3;--border:#2c2c3f;--row:#11111a;--row-alt:#0f0f18;--pos:#75e39a;--neg:#ff8484;--pill:#2a2a3a;--accent:#3c7cff;--link:#9fb8ff;--link-hover:#cfe0ff}
-    *{box-sizing:border-box}body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:#eaeaea}
-    h1{margin:0 0 8px;font-size:20px}a{color:var(--link);text-decoration:underline}a:hover{color:var(--link-hover)}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
+    :root{
+      --bg:#0b0b10; --card:#141421; --row:#11111a; --row-alt:#11111c;
+      --muted:#a8a8b3; --border:#2a2a3a; --accent:#3c7cff;
+      --link:#9fb8ff; --link-hover:#cfe0ff; --pos:#9cffb3; --neg:#ff8996;
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:#eaeaea}
+    a{color:var(--link);text-decoration:underline}a:hover{color:var(--link-hover)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
     .muted{color:var(--muted)}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
-    label{font-size:13px;opacity:.9}input,select,button{background:#1b1b2b;color:#eaeaea;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px}
-    button{cursor:pointer;font-weight:600}.btn-link{background:transparent;border:1px solid #2a2a3a;padding:10px 12px;border-radius:10px}
-    .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}.btn-danger{background:transparent;border:1px solid #6a2a2a;color:#ff9b9b;padding:6px 10px;border-radius:10px}
-    .section-title{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:12px}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#2a2a3a;border:1px solid #3a3a57;margin-right:6px;font-size:12px}
-    nav{position:sticky;top:0;z-index:50;margin-bottom:10px}.nav-wrap{background:#12121c;border:1px solid var(--border);border-radius:12px;padding:6px}
-    .nav{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}.nav::-webkit-scrollbar{display:none}
-    .nav a{color:#eaeaea;text-decoration:none;border:1px solid var(--border);padding:8px 10px;border-radius:10px;display:inline-flex;gap:6px;align-items:center;white-space:nowrap;flex:0 0 auto}
-    .nav a.active{background:var(--accent);border-color:var(--accent);color:#fff}.nav .ic{width:18px;height:18px;display:inline-grid;place-items:center;opacity:.9}
-    @media (max-width:560px){.nav a{padding:8px;gap:0}.nav a span.label{display:none}}
+    label{font-size:13px;opacity:.9}
+    input,select,button{background:#0f0f18;border:1px solid var(--border);border-radius:10px;padding:10px 12px;font-size:15px;color:#eaeaea}
+    button{cursor:pointer;font-weight:600}
+    .btn-link{background:transparent;border:1px solid var(--border)}
+    .btn-primary{background:var(--accent);border:none;color:#fff}
+    .btn-danger{background:#2a1518;border:1px solid #6a2a2a;color:#ff9b9b}
+    nav{display:flex;gap:8px;margin:8px 0 16px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none}
+    nav::-webkit-scrollbar{display:none}
+    nav a{display:inline-flex;gap:6px;align-items:center;white-space:nowrap;padding:8px 10px;border:1px solid var(--border);border-radius:10px;color:#eaeaea;text-decoration:none}
+    nav a.active{background:#1a1a2a}
     table{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;table-layout:fixed}
-    thead th{background:var(--card);border-bottom:1px solid var(--border);padding:8px;text-align:left}
-    tbody tr:nth-child(odd):not(.expander){background:var(--row)}tbody tr:nth-child(even):not(.expander){background:var(--row-alt)}
-    td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}.saldo{font-weight:700;text-align:right;white-space:nowrap}
-    .saldo-pos{color:var(--pos)}.saldo-neg{color:var(--neg)}.row-neg{outline:2px solid rgba(255,132,132,.18)}
-    .day-chip{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:#1b1b2b;border:1px solid var(--border);font-weight:700}
-    tr.expander td{padding:0;border-bottom:none}.expand-card{background:#12121c;border:1px solid #26263a;border-radius:10px;margin:8px 0 16px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
-    .tx-list{list-style:disc;padding-left:18px;margin:0}.tx-list li{margin:6px 0}.col-dia{width:56px}.col-saldo{width:110px}
-    @media (max-width:600px){body{margin:10px}h1{font-size:18px}table{font-size:13px}.col-saldo{width:96px}}
-    .filters{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}.filters .group{display:flex;flex-direction:column;gap:6px}
-    #modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:1000}
-    #modal-backdrop.open{display:flex}.modal{width:100%;max-width:560px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
-    #navBar,[data-sec]{display:none}body.logged #navBar{display:block}[data-sec].show{display:block}
+    thead th{border-bottom:1px solid var(--border);padding:8px;text-align:left}
+    tbody tr:nth-child(odd):not(.expander){background:var(--row)}
+    tbody tr:nth-child(even):not(.expander){background:var(--row-alt)}
+    td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
+    .col-dia{width:120px}.col-saldo{width:160px;text-align:right}
+    .saldo{font-weight:700}.saldo-pos{color:var(--pos)}.saldo-neg{color:var(--neg)}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:#cfd2ff}
+    .expand-card{background:#0f0f18;border:1px dashed #34344e;border-radius:12px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+    .tx-list{list-style:disc;padding-left:18px;margin:0}.tx-list li{margin:6px 0}
+    #authView{max-width:520px;margin:60px auto}
+    #userBar{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
+    #userBar .right{display:flex;gap:10px;align-items:center}
+    #userBar .avatar{width:24px;height:24px;border-radius:99px;border:1px solid var(--border);background:#2a2a3a}
+    body:not(.logged) .app{display:none}
+    #modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:1000}
+    #modal-backdrop.open{display:flex}
+    .modal{width:100%;max-width:560px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+    .warning{background:#231b1b;border:1px solid #5e3232;padding:10px;border-radius:10px}
   </style>
 </head>
 <body>
-  <h1>MWFinance</h1>
-
-  <div id="userBar" class="card" style="display:none">
-    <div style="display:flex;justify-content:space-between;align-items:center">
-      <div id="userInfo" class="muted">—</div>
-      <div><button id="btnLogout" class="btn-link">Sair</button></div>
-    </div>
-  </div>
-
-  <nav id="navBar" class="card nav-wrap">
-    <div class="nav">
-      <a href="#/saldos" id="nav-saldos"><span class="ic">📊</span><span class="label">Saldos</span></a>
-      <a href="#/contas" id="nav-contas"><span class="ic">💳</span><span class="label">Contas</span></a>
-      <a href="#/categorias" id="nav-categorias"><span class="ic">🏷️</span><span class="label">Categorias</span></a>
-      <a href="#/importar" id="nav-importar"><span class="ic">📥</span><span class="label">Importar</span></a>
-    </div>
-  </nav>
-
-  <!-- LOGIN -->
-  <div id="authView" class="card">
-    <div class="row" style="justify-content:space-between">
-      <div>
-        <div style="font-weight:700;margin-bottom:6px;">Entrar</div>
-        <div class="muted" style="max-width:420px">Use e-mail/senha ou Google. Seus dados ficam isolados por usuário (RLS).</div>
+  <header class="app">
+    <div id="userBar" class="card">
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.9</span></div>
+      <div class="right">
+        <span id="userInfo" class="muted">—</span>
+        <span class="avatar"></span>
+        <button id="btnLogout" class="btn-link">Sair</button>
       </div>
     </div>
-    <div class="row" style="max-width:520px">
-      <div style="flex:1"><label>E-mail</label><br/><input id="email" type="email" placeholder="voce@exemplo.com"/></div>
-      <div style="flex:1"><label>Senha</label><br/><input id="password" type="password" placeholder="••••••••"/></div>
-    </div>
-    <div class="row">
-      <button id="btnLogin" class="btn-primary">Entrar</button>
-      <button id="btnSignup" class="btn-link">Criar conta</button>
-      <button id="btnGoogle" class="btn-link">Entrar com Google</button>
-      <span id="authMsg" class="muted"></span>
-    </div>
-  </div>
 
-  <!-- SALDOS -->
-  <section id="view-saldos" data-sec>
-    <div class="card">
-      <div class="section-title">
-        <div><strong>Saldos Diários</strong></div>
-        <div class="muted">Acompanhe previsões e materialize recorrências ao efetivar.</div>
-      </div>
-      <div class="filters">
-        <div class="group">
-          <label for="conta">Conta</label>
-          <select id="conta"></select>
-        </div>
-        <div class="group">
-          <label for="mesRef">Mês</label>
-          <input id="mesRef" type="month"/>
-        </div>
-        <div class="group" style="flex:1"></div>
-        <div class="group" style="flex-direction:row; gap:8px;">
-          <button id="btnAtualizar">Atualizar</button>
-          <button id="btnMesAnterior" title="Mês anterior">◀︎</button>
-          <button id="btnMesSeguinte" title="Próximo mês">▶︎</button>
-          <button id="btnNova" class="btn-primary">+ Nova Transação</button>
-        </div>
-      </div>
-    </div>
-    <div id="output" class="card"><div class="muted">Selecione a conta…</div></div>
-  </section>
+    <nav class="app">
+      <a href="#/saldos" id="nav-saldos" class="active"><span>📊</span><span class="label">Saldos</span></a>
+      <a href="#/contas" id="nav-contas"><span>💳</span><span class="label">Contas</span></a>
+      <a href="#/categorias" id="nav-categorias"><span>🏷️</span><span class="label">Categorias</span></a>
+      <a href="#/importar" id="nav-importar"><span>📥</span><span class="label">Importar</span></a>
+    </nav>
+  </header>
 
-  <!-- CONTAS -->
-  <section id="view-contas" data-sec>
-    <div class="card">
-      <div class="section-title">
-        <div><strong>Contas</strong></div>
-        <div class="muted">Crie sua primeira conta com <em>saldo inicial</em> e gerencie as existentes.</div>
-      </div>
+  <main>
+    <!-- AUTH -->
+    <section id="authView" class="card">
+      <h2 style="margin:0 0 10px;">Entrar</h2>
       <div class="row">
-        <div style="flex:1"><label>Nome da conta</label><br/><input id="c_nome" placeholder="Ex.: Conta Corrente Nubank"/></div>
-        <div><label>Saldo inicial</label><br/><input id="c_saldo" type="number" step="0.01" value="0"/></div>
-        <div style="align-self:flex-end"><button id="btnCriarConta" class="btn-primary">Criar Conta</button></div>
+        <input id="email" type="email" placeholder="Seu e-mail" style="flex:1"/>
+        <input id="password" type="password" placeholder="Senha" style="flex:1"/>
       </div>
-    </div>
-    <div id="contasLista" class="card"><div class="muted">Carregando…</div></div>
-  </section>
+      <div class="row" style="justify-content:flex-end; gap:8px;">
+        <button id="btnSignup" class="btn-link">Criar conta</button>
+        <button id="btnLogin" class="btn-primary">Entrar</button>
+        <button id="btnLoginGoogle" class="btn-link" title="Google OAuth">Entrar com Google</button>
+      </div>
+      <p id="authMsg" class="muted"></p>
+      <div class="warning">
+        <strong>Importante:</strong> garanta RLS por usuário e a RPC <code>saldos_diarios</code> publicada no Supabase.
+      </div>
+    </section>
 
-  <!-- CATEGORIAS -->
-  <section id="view-categorias" data-sec>
-    <div class="card">
-      <div class="section-title">
-        <div><strong>Categorias</strong></div>
-        <div class="muted">Organize suas transações por categoria (crédito/débito).</div>
-      </div>
+    <!-- SALDOS -->
+    <section id="view-saldos" class="card app">
+      <h2 style="margin:0 0 10px;">Saldos diários</h2>
       <div class="row">
-        <div style="flex:1"><label>Nome</label><br/><input id="cat_nome" placeholder="Ex.: Mercado"/></div>
-        <div><label>Tipo</label><br/>
-          <select id="cat_tipo"><option value="debito">Débito</option><option value="credito">Crédito</option></select>
+        <div class="row" style="flex:1;align-items:flex-end">
+          <div>
+            <label>Conta</label><br/>
+            <select id="conta" style="min-width:220px"></select>
+          </div>
+          <div>
+            <label>Mês de referência</label><br/>
+            <div class="row" style="margin:0">
+              <button id="btnMesAnterior" class="btn-link">◀</button>
+              <input id="mesRef" type="month" />
+              <button id="btnMesSeguinte" class="btn-link">▶</button>
+            </div>
+          </div>
         </div>
-        <div style="flex:1"><label>Descrição</label><br/><input id="cat_desc" placeholder="Opcional"/></div>
-        <div style="align-self:flex-end"><button id="btnCriarCategoria" class="btn-primary">Criar Categoria</button></div>
+        <div class="row" style="margin:0">
+          <button id="btnAtualizar" class="btn-primary">Atualizar</button>
+          <button id="btnNova" class="btn-link">Nova transação</button>
+        </div>
       </div>
-    </div>
-    <div id="categoriasLista" class="card"><div class="muted">Carregando…</div></div>
-  </section>
+      <div id="output"></div>
+    </section>
 
-  <!-- IMPORTAR -->
-  <section id="view-importar" data-sec>
-    <div class="card">
-      <div class="section-title">
-        <div><strong>Importar CSV</strong></div>
-        <div class="muted">Use os templates para importar categorias, transações e recorrências.</div>
-      </div>
+    <!-- CONTAS -->
+    <section id="view-contas" class="card app" style="display:none">
+      <h2 style="margin:0 0 10px;">Contas</h2>
       <div class="row">
-        <div><label>Tipo</label><br/>
-          <select id="imp_tipo">
-            <option value="categorias">Categorias</option>
-            <option value="transacoes">Transações</option>
-            <option value="recorrencias">Recorrências</option>
-          </select>
-        </div>
-        <div><label>Arquivo CSV</label><br/><input id="imp_file" type="file" accept=".csv"/></div>
-        <div style="align-self:flex-end"><button id="btnImportarCsv" class="btn-primary">Importar</button></div>
+        <input id="c_nome" type="text" placeholder="Nome da conta"/>
+        <input id="c_saldo" type="number" step="0.01" value="0"/>
+        <button id="btnCriarConta" class="btn-primary">Criar</button>
       </div>
-      <div style="margin-top:6px;">
+      <div id="contasLista"></div>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section id="view-categorias" class="card app" style="display:none">
+      <h2 style="margin:0 0 10px;">Categorias</h2>
+      <div class="row">
+        <input id="cat_nome" type="text" placeholder="Nome"/>
+        <select id="cat_tipo">
+          <option value="debito">Débito</option>
+          <option value="credito">Crédito</option>
+        </select>
+        <input id="cat_desc" type="text" placeholder="Descrição (opcional)"/>
+        <button id="btnCriarCategoria" class="btn-primary">Criar</button>
+      </div>
+      <div id="catsLista"></div>
+    </section>
+
+    <!-- IMPORTAR -->
+    <section id="view-importar" class="card app" style="display:none">
+      <h2 style="margin:0 0 10px;">Importar CSV</h2>
+      <div class="row">
+        <select id="imp_tipo">
+          <option value="transacoes">Transações</option>
+          <option value="recorrencias">Recorrências</option>
+          <option value="categorias">Categorias</option>
+        </select>
+        <input id="imp_file" type="file" accept=".csv" />
+        <button id="btnImportarCsv" class="btn-primary">Importar</button>
+      </div>
+      <div id="templates" class="muted">
         Templates:
         <a href="./templates/template_categorias.csv" download>template_categorias.csv</a>,
         <a href="./templates/template_transacoes.csv" download>template_transacoes.csv</a>,
         <a href="./templates/template_recorrencias.csv" download>template_recorrencias.csv</a>
       </div>
       <div id="imp_msg" style="margin-top:8px;"></div>
-    </div>
-  </section>
+    </section>
 
-  <!-- MODAL NOVA/EDITAR -->
-  <div id="modal-backdrop">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
-      <div class="row" style="flex-direction:column; align-items:stretch;">
-        <input id="f_mode" type="hidden" value="create"/>
-        <input id="f_edit_id" type="hidden" value=""/>
-        <input id="f_edit_virtual" type="hidden" value="false"/>
+    <!-- MODAL NOVA/EDITAR -->
+    <div id="modal-backdrop">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
+        <div class="row" style="flex-direction:column; align-items:stretch;">
+          <input id="f_mode" type="hidden" value="create"/>
+          <input id="f_edit_id" type="hidden" value=""/>
+          <input id="f_edit_virtual" type="hidden" value="false"/>
+          <input id="f_edit_recorrencia_id" type="hidden" value=""/>
 
-        <label>Tipo do lançamento</label>
-        <select id="f_kind">
-          <option value="unica" selected>Única</option>
-          <option value="parcelada">Parcelada</option>
-          <option value="recorrente">Recorrente</option>
-        </select>
-
-        <label>Descrição</label>
-        <input id="f_descricao" type="text" placeholder="Ex.: Mensalidade academia"/>
-
-        <div class="row" style="gap:10px;">
-          <div style="flex:1">
-            <label>Tipo</label>
-            <select id="f_tipo">
-              <option value="debito">Débito</option>
-              <option value="credito">Crédito</option>
-            </select>
-          </div>
-          <div style="flex:1">
-            <label>Valor</label>
-            <input id="f_valor" type="number" step="0.01" min="0"/>
-          </div>
-        </div>
-
-        <label>Data</label>
-        <input id="f_data" type="date"/>
-
-        <div id="grpParcelas" style="display:none">
-          <label>Quantidade de parcelas</label>
-          <input id="f_qtd" type="number" min="2" step="1" placeholder="Ex.: 12"/>
-          <small class="muted">Serão lançadas N transações, 1 por mês, a partir da data informada.</small>
-        </div>
-
-        <div id="grpPeriodicidade" style="display:none">
-          <label>Periodicidade</label>
-          <select id="f_periodicidade">
-            <option value="mensal" selected>Mensal</option>
+          <label>Tipo do lançamento</label>
+          <select id="f_kind">
+            <option value="unica" selected>Única</option>
+            <option value="parcelada">Parcelada</option>
+            <option value="recorrente">Recorrente</option>
           </select>
-          <small class="muted">Recorrências são previstas; materialize quando efetivar.</small>
+
+          <label>Descrição</label>
+          <input id="f_descricao" type="text" placeholder="Ex.: Mensalidade academia"/>
+
+          <div class="row" style="gap:10px;">
+            <div style="flex:1">
+              <label>Tipo</label>
+              <select id="f_tipo">
+                <option value="debito">Débito</option>
+                <option value="credito">Crédito</option>
+              </select>
+            </div>
+            <div style="flex:1">
+              <label>Valor</label>
+              <input id="f_valor" type="number" step="0.01" min="0"/>
+            </div>
+          </div>
+
+          <label>Data</label>
+          <input id="f_data" type="date"/>
+
+          <div class="row" id="grpParcelas" style="display:none;">
+            <div style="flex:1">
+              <label>Qtd. parcelas</label>
+              <input id="f_qtd" type="number" min="2" value="2"/>
+            </div>
+          </div>
+
+          <div class="row" id="grpPeriodo" style="display:none;">
+            <div style="flex:1">
+              <label>Periodicidade</label>
+              <select id="f_periodicidade" disabled>
+                <option value="mensal" selected>Mensal</option>
+              </select>
+            </div>
+          </div>
+
+          <label>Status</label>
+          <select id="f_status">
+            <option value="cadastrada" selected>Cadastrada</option>
+            <option value="agendada">Agendada</option>
+            <option value="efetivada">Efetivada</option>
+          </select>
         </div>
 
-        <label>Status</label>
-        <select id="f_status">
-          <option value="cadastrada" selected>Cadastrada</option>
-          <option value="agendada">Agendada</option>
-          <option value="efetivada">Efetivada</option>
-        </select>
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+          <button id="m_cancel" class="btn-link">Cancelar</button>
+          <button id="m_save" class="btn-primary">Salvar</button>
+        </div>
+        <p id="m_hint" class="muted" style="margin-top:8px;"></p>
       </div>
-
-      <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
-        <button id="m_cancel" class="btn-link">Cancelar</button>
-        <button id="m_save" class="btn-primary">Salvar</button>
-      </div>
-      <p id="m_hint" class="muted" style="margin-top:8px;"></p>
     </div>
-  </div>
+  </main>
 
   <script src="./config.js"></script>
   <script type="module">
@@ -237,84 +233,244 @@
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
 
-    // ===== Helpers
+    // ---------- Helpers ----------
     const qs = (s)=>document.querySelector(s);
-    function money(v){return Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
-    function day(iso){const d=new Date(iso);return isNaN(d)?'':d.getUTCDate()}
-    function classSaldo(v){return Number(v||0)<0?'saldo saldo-neg':'saldo saldo-pos'}
+    const qsa = (s)=>Array.from(document.querySelectorAll(s));
+    const money = (n)=> (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    const nav = { saldos:qs('#nav-saldos'), contas:qs('#nav-contas'), categorias:qs('#nav-categorias'), importar:qs('#nav-importar') };
+    const sections = { saldos:qs('#view-saldos'), contas:qs('#view-contas'), categorias:qs('#view-categorias'), importar:qs('#view-importar') };
 
-    // ===== Router + gate
-    const sections={saldos:qs('#view-saldos'),contas:qs('#view-contas'),categorias:qs('#view-categorias'),importar:qs('#view-importar')};
-    const nav={saldos:qs('#nav-saldos'),contas:qs('#nav-contas'),categorias:qs('#nav-categorias'),importar:qs('#nav-importar')};
-    function cv(){const h=(location.hash||'#/saldos').toLowerCase();if(h.startsWith('#/contas'))return'contas';if(h.startsWith('#/categorias'))return'categorias';if(h.startsWith('#/importar'))return'importar';return'saldos'}
-    function show(view){Object.values(sections).forEach(s=>s.classList.remove('show'));Object.values(nav).forEach(a=>a.classList.remove('active'));(sections[view]||sections.saldos).classList.add('show');(nav[view]||nav.saldos).classList.add('active');if(view==='saldos')carregarContas();if(view==='contas')listarContas();if(view==='categorias')listarCategorias()}
-    function navigate(view){if(!currentSession)return;location.hash='#/'+view;show(view)}
-    window.addEventListener('hashchange',()=>{if(currentSession)show(cv())});
-    ['saldos','contas','categorias','importar'].forEach(v=>nav[v].onclick=(e)=>{e.preventDefault();navigate(v)})
+    async function hdr(){
+      const { data:{ session } } = await supabase.auth.getSession();
+      if(!session) throw new Error('Sem sessão');
+      return {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      };
+    }
+    async function api(method, path, body){
+      const r = await fetch(`${SUPABASE_URL}${path}`, { method, headers: await hdr(), body: body? JSON.stringify(body): undefined });
+      if(!r.ok){ const t = await r.text(); throw new Error(t||r.status); }
+      return r.status===204 ? true : r.json();
+    }
+    function navigate(view){ if(!currentSession) return; location.hash='#/'+view; show(view); }
+    function show(view){
+      Object.entries(sections).forEach(([k,el])=>el.style.display=(k===view)?'block':'none');
+      Object.entries(nav).forEach(([k,a])=>a.classList.toggle('active',k===view));
+      if(view==='saldos') consultar();
+      if(view==='contas') listarContas();
+      if(view==='categorias') listarCategorias();
+    }
 
-    // Sessão
+    // ---------- Sessão/Auth ----------
     let currentSession=null;
     const $auth=qs('#authView'),$ubar=qs('#userBar'),$uinfo=qs('#userInfo'),$logout=qs('#btnLogout');
-    function setLoggedUI(logged){document.body.classList.toggle('logged',logged);$auth.style.display=logged?'none':'block';$ubar.style.display=logged?'block':'none';if(!logged)Object.values(sections).forEach(sec=>sec.classList.remove('show'))}
-    function setSession(s){currentSession=s;const logged=!!s?.user;setLoggedUI(logged);$uinfo.textContent=logged?(s.user.email||'Usuário'):'—';if(logged)show(cv())}
-
-    qs('#btnLogin').onclick=async()=>{try{qs('#authMsg').textContent='Entrando...';const{error}=await supabase.auth.signInWithPassword({email:qs('#email').value.trim(),password:qs('#password').value});if(error){qs('#authMsg').textContent='Erro: '+error.message;return}const{data:{session}}=await supabase.auth.getSession();qs('#authMsg').textContent='';setSession(session);navigate('saldos')}catch(e){qs('#authMsg').textContent='Erro: '+e.message}};
-    qs('#btnSignup').onclick=async()=>{try{const{error}=await supabase.auth.signUp({email:qs('#email').value.trim(),password:qs('#password').value});qs('#authMsg').textContent=error?'Erro: '+error.message:'Conta criada. Verifique o e-mail.'}catch(e){qs('#authMsg').textContent='Erro: '+e.message}};
-    const PROD_REDIRECT='https://mwfinance.vercel.app';qs('#btnGoogle').onclick=async()=>{const{error}=await supabase.auth.signInWithOAuth({provider:'google',options:{redirectTo:PROD_REDIRECT}});if(error)alert(error.message)};
-    $logout.onclick=async()=>{await supabase.auth.signOut();setSession(null)};
-    supabase.auth.onAuthStateChange((_e,s)=>{setSession(s);if(location.hash.startsWith('#access_token'))history.replaceState(null,'',location.pathname+location.search)});
+    function setSession(s){currentSession=s;const logged=!!s;$auth.style.display=logged?'none':'block';$ubar.style.display=logged?'block':'none';$uinfo.textContent=logged?(s.user.email||'Usuário'):'—';if(logged)show((location.hash.replace(/^#\/?/,'')||'saldos'))}
+    qs('#btnLogin').onclick=async()=>{try{qs('#authMsg').textContent='';const { error } = await supabase.auth.signInWithPassword({ email:qs('#email').value.trim(),password:qs('#password').value});qs('#authMsg').textContent=error?'Erro: '+error.message:'Logado!'}catch(e){qs('#authMsg').textContent='Erro: '+e.message}}
+    qs('#btnSignup').onclick=async()=>{try{const{error}=await supabase.auth.signUp({ email:qs('#email').value.trim(),password:qs('#password').value});qs('#authMsg').textContent=error?'Erro: '+error.message:'Conta criada. Faça login.'}catch(e){qs('#authMsg').textContent='Erro: '+e.message}}
+    const PROD_REDIRECT='https://mwfinance.vercel.app';
+    qs('#btnLoginGoogle').onclick=async()=>{const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{redirectTo:PROD_REDIRECT}});if(error)alert(error.message)}
+    $logout.onclick=async()=>{await supabase.auth.signOut();setSession(null);location.hash='#/saldos'}
+    supabase.auth.onAuthStateChange((_e,s)=>{setSession(s);if(!s)history.replaceState(null,'',location.pathname+location.search)});
     (async()=>{const{data:{session}}=await supabase.auth.getSession();setSession(session);if(session&&!location.hash)navigate('saldos')})();
 
-    // ===== REST helpers
-    async function hdr(){if(!currentSession){const{data:{session}}=await supabase.auth.getSession();currentSession=session}if(!currentSession)throw new Error('Sem sessão');return{apikey:SUPABASE_ANON_KEY,Authorization:`Bearer ${currentSession.access_token}`,'Content-Type':'application/json',Prefer:'return=representation'}}
-    async function api(m,p,b=null){const r=await fetch(`${SUPABASE_URL}${p}`,{method:m,headers:await hdr(),body:b?JSON.stringify(b):null});if(!r.ok)throw new Error(await r.text());try{return await r.json()}catch{return null}}
+    // ---------- Navegação ----------
+    window.addEventListener('hashchange',()=>{ if(currentSession) show(location.hash.replace(/^#\/?/,'')||'saldos') });
+    ['saldos','contas','categorias','importar'].forEach(v=>nav[v].onclick=(e)=>{e.preventDefault();navigate(v)})
 
-    // ===== SALDOS
-    const $conta=qs('#conta'),$mesRef=qs('#mesRef'),$out=qs('#output');$mesRef.value=new Date().toISOString().slice(0,7)
-    function addMonthsYM(ym,d){const[y,m]=ym.split('-').map(Number);const dt=new Date(Date.UTC(y,m-1,1));dt.setUTCMonth(dt.getUTCMonth()+d);return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}`}
-    qs('#btnAtualizar').onclick=consultar;qs('#btnMesAnterior').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,-1);consultar()};qs('#btnMesSeguinte').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,+1);consultar()}
+    // ---------- SALDOS ----------
+    const $conta=qs('#conta'),$mesRef=qs('#mesRef'),$out=qs('#output');$mesRef.value=new Date().toISOString().slice(0,7);
+    const expandedDays = new Set(); // mantém dias expandidos
+    window._lastRows = null;        // cache da última resposta
 
-    async function carregarContas(){try{const r=await fetch(`${SUPABASE_URL}/rest/v1/contas?select=nome&order=nome.asc`,{headers:await hdr()});if(!r.ok)throw new Error((await r.text())||r.statusText);const contas=await r.json();if(!contas.length){$out.innerHTML='<div class="muted">Nenhuma conta. Crie em <strong>Contas</strong>.</div>';$conta.innerHTML='';return}$conta.innerHTML=contas.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');consultar()}catch(e){$out.innerHTML=`<div class="muted">Erro: ${e.message}</div>`}}
-    async function consultar(){try{const conta=$conta.value,ym=$mesRef.value;if(!conta||!ym){$out.innerHTML='<div class="muted">Selecione conta e mês.</div>';return}const ref=ym+'-01';const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`,{method:'POST',headers:await hdr(),body:JSON.stringify({conta_nome:conta,referencia:ref})});if(!r.ok){$out.innerHTML=`<div class="muted">Erro: ${await r.text()}</div>`;return}renderTabela(await r.json())}catch(e){$out.innerHTML=`<div class="muted">Erro: ${e.message}</div>`}}
-    function renderTabela(rows){if(!rows?.length){$out.innerHTML='<div class="muted">Nenhum dado.</div>';return}const body=rows.map((r,i)=>linhaDia(r,i)).join('');$out.innerHTML=`<table><thead><tr><th class="col-dia">Dia</th><th>Transações do dia</th><th class="col-saldo">Saldo</th></tr></thead><tbody>${body}</tbody></table>`;document.querySelectorAll('button.tx-toggle').forEach(b=>b.addEventListener('click',toggleExp));document.querySelectorAll('select.tx-status').forEach(s=>s.addEventListener('change',onChangeStatus));document.querySelectorAll('button.tx-del').forEach(b=>b.addEventListener('click',onDeleteTx));document.querySelectorAll('button.tx-del-rec').forEach(b=>b.addEventListener('click',onDeleteRec));document.querySelectorAll('button.tx-edit').forEach(b=>b.addEventListener('click',onEditTx));document.querySelectorAll('button.tx-mat-edit').forEach(b=>b.addEventListener('click',onMatEdit))}
-    function linhaDia(r,i){const txs=Array.isArray(r.transacoes)?r.transacoes:[];const meio=txs.length?`<button class="tx-toggle btn-link" data-exp="exp-${i}" data-count="${txs.length}" aria-expanded="false">► ${txs.length} transação(ões)</button>`:`<span class="muted">–</span>`;const linha=`<tr class="${Number(r.saldo)<0?'row-neg':''}"><td><span class="day-chip">${day(r.dia)}</span></td><td>${meio}</td><td class="${classSaldo(r.saldo)}">${money(r.saldo)}</td></tr>`;const exp=txs.length?`<tr id="exp-${i}" class="expander" style="display:none;"><td colspan="3">${expCard(txs,r.dia)}</td></tr>`:'';return linha+exp}
-    function expCard(txs,dia){const items=txs.map(t=>{const select=`<select class="tx-status" data-virtual="${!!t.virtual}" data-id="${t.id||''}" data-recorrencia-id="${t.recorrencia_id||''}" data-conta-id="${t.conta_id||''}" data-data="${t.data||dia}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}" data-tipo="${t.tipo}" data-valor="${t.valor}"><option value="" selected disabled>${t.status||'cadastrada'}</option><option value="cadastrada">Cadastrada</option><option value="agendada">Agendada</option><option value="efetivada">Efetivada</option></select>`;
-      const editBtn = t.virtual
-        ? `<button class="tx-mat-edit btn-link"
-             data-virtual="true" data-recorrencia-id="${t.recorrencia_id||''}" data-conta-id="${t.conta_id||''}"
-             data-data="${t.data||dia}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
-             data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}">Materializar & editar</button>`
-        : `<button class="tx-edit btn-link"
-             data-virtual="false" data-id="${t.id}"
-             data-data="${t.data}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
-             data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}">Editar</button>`;
-      const delBtn = t.virtual
-        ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}">Excluir recorrência</button>`
-        : `<button class="tx-del btn-danger" data-id="${t.id}">Excluir</button>`;
-      return `<li><span class="pill">${t.tipo}</span> <strong>${t.descricao}</strong> — ${money(t.valor)} ${t.virtual?'<span class="pill">virtual</span>':''}
-        <span style="margin-left:8px;display:inline-flex;gap:8px;">${select}${editBtn}${delBtn}</span></li>`;
-    }).join('');return `<div class="expand-card"><ul class="tx-list">${items}</ul></div>`}
-    function toggleExp(e){const b=e.currentTarget,row=document.getElementById(b.dataset.exp);if(!row)return;const h=row.style.display==='none';row.style.display=h?'':'';b.setAttribute('aria-expanded',h?'true':'false');b.textContent=(h?'▼ ':'► ')+`${b.dataset.count} transação(ões)`}
+    function addMonthsYM(ym,d){const[y,m]=ym.split('-').map(Number);const dt=new Date(Date.UTC(Number(y),Number(m)-1,1));dt.setUTCMonth(dt.getUTCMonth()+d);return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}`}
+    qs('#btnAtualizar').onclick=()=>consultar(false);
+    qs('#btnMesAnterior').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,-1);consultar(false)}
+    qs('#btnMesSeguinte').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,+1);consultar(false)}
 
-    // Status
-    async function onChangeStatus(e){const s=e.currentTarget,v=s.value;if(!v)return;const isVirt=s.dataset.virtual==='true';if(isVirt){await api('POST','/rest/v1/transacoes',{recorrencia_id:s.dataset.recorrenciaId||s.dataset['recorrencia-id'],conta_id:s.dataset.contaId||s.dataset['conta-id'],data:s.dataset.data,descricao:s.dataset.descricao,tipo:s.dataset.tipo,valor:Number(s.dataset.valor),status:v})}else{await api('PATCH',`/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`,{status:v})}consultar()}
-    function onDeleteTx(e){const id=e.currentTarget.dataset.id;if(confirm('Excluir transação?'))api('DELETE',`/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`).then(consultar).catch(err=>alert(err.message))}
-    function onDeleteRec(e){const id=e.currentTarget.dataset.recorrenciaId;if(confirm('Excluir recorrência?'))api('DELETE',`/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`).then(consultar).catch(err=>alert(err.message))}
+    async function carregarContas(){
+      try{
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/contas?select=id,nome&order=nome.asc`,{headers:await hdr()});
+        if(!r.ok)throw new Error(await r.text());
+        const data=await r.json();
+        $conta.innerHTML = data.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
+      }catch(e){$out.innerHTML='<div class="muted">Erro ao carregar contas.</div>'}
+    }
+    carregarContas();
 
-    // ===== Editar / Materializar & editar
+    async function consultar(keepExpanded=false){
+      try{
+        const conta=$conta.value,ym=$mesRef.value;
+        if(!conta||!ym){$out.innerHTML='<div class="muted">Selecione a conta e mês.</div>';return}
+        const ref=ym+'-01';
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`,{method:'POST',headers:await hdr(),body:JSON.stringify({ conta_nome:conta, referencia: ref })});
+        if(!r.ok) throw new Error(await r.text());
+        const rows = await r.json();
+        if(!keepExpanded) expandedDays.clear();
+        renderTabela(rows);
+      }catch(e){$out.innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
+    }
+
+    function renderTabela(rows){
+      window._lastRows = rows;
+      if(!rows?.length){$out.innerHTML='<div class="muted">Sem dados para o período.</div>';return}
+      const html = `
+        <table>
+          <thead><tr><th class="col-dia">Dia</th><th>Transações do dia</th><th class="col-saldo">Saldo</th></tr></thead>
+          <tbody>${rows.map(linhaDia).join('')}</tbody>
+        </table>`;
+      $out.innerHTML = html;
+
+      // bind
+      qsa('.toggle').forEach(b=>b.addEventListener('click',toggleExp));
+      qsa('.tx-status').forEach(s=>s.addEventListener('change',onChangeStatus));
+      qsa('.tx-del').forEach(b=>b.addEventListener('click',onDeleteTx));
+      qsa('.tx-del-rec').forEach(b=>b.addEventListener('click',onDeleteRec));
+      qsa('.tx-edit').forEach(b=>b.addEventListener('click',onEditTx));
+      qsa('.tx-mat-edit').forEach(b=>b.addEventListener('click',onMatEdit));
+    }
+
+    function linhaDia(r){
+      const diaISO = r.dia;
+      const txs = Array.isArray(r.transacoes)? r.transacoes : [];
+      const isOpen = expandedDays.has(diaISO);
+      const cnt = txs.length;
+      const saldoClass = Number(r.saldo)>=0?'saldo-pos':'saldo-neg';
+
+      const toggleBtn = cnt
+        ? `<button class="btn-link toggle" data-dia="${diaISO}" data-count="${cnt}">${isOpen ? 'Fechar' : 'Abrir'} ${cnt} transação(ões)</button>`
+        : `<span class="muted">–</span>`;
+
+      const linha = `<tr class="row-dia">
+        <td class="col-dia">${new Date(diaISO).toLocaleDateString()}</td>
+        <td>${toggleBtn}</td>
+        <td class="col-saldo saldo ${saldoClass}">${money(r.saldo)}</td>
+      </tr>`;
+
+      const exp = (isOpen && cnt) ? `<tr class="expander"><td colspan="3">${expCard(txs, diaISO)}</td></tr>` : '';
+      return linha+exp;
+    }
+
+    function expCard(txs,dia){
+      const items=txs.map(t=>{
+        const select =
+`<select class="tx-status"
+  data-virtual="${!!t.virtual}"
+  data-id="${t.id||''}"
+  data-recorrencia-id="${t.recorrencia_id||''}"
+  data-conta-id="${t.conta_id||''}"
+  data-data="${t.data||dia}"
+  data-descricao="${(t.descricao||'').replace(/\"/g,'&quot;')}"
+  data-tipo="${t.tipo}"
+  data-valor="${t.valor}">
+  <option value="cadastrada" ${t.status==='cadastrada'?'selected':''}>Cadastrada</option>
+  <option value="agendada" ${t.status==='agendada'?'selected':''}>Agendada</option>
+  <option value="efetivada" ${t.status==='efetivada'?'selected':''}>Efetivada</option>
+</select>`;
+        const editBtn = t.virtual
+          ? `<button class="tx-mat-edit btn-link"
+               data-virtual="true" data-recorrencia-id="${t.recorrencia_id||''}" data-conta-id="${t.conta_id||''}"
+               data-data="${t.data||dia}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
+               data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}">Materializar & editar</button>`
+          : `<button class="tx-edit btn-link"
+               data-virtual="false" data-id="${t.id}"
+               data-data="${t.data}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
+               data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}">Editar</button>`;
+        const delBtn = t.virtual
+          ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}">Excluir recorrência</button>`
+          : `<button class="tx-del btn-danger" data-id="${t.id}">Excluir</button>`;
+        return `<li><span class="pill">${t.tipo}</span> <strong>${t.descricao}</strong> — ${money(t.valor)} ${t.virtual?'<span class="pill">virtual</span>':''}
+          <span style="margin-left:8px;display:inline-flex;gap:8px;">${select}${editBtn}${delBtn}</span></li>`;
+      }).join('');
+      return `<div class="expand-card"><ul class="tx-list">${items}</ul></div>`
+    }
+
+    function toggleExp(e){
+      const b=e.currentTarget; const dia=b.dataset.dia;
+      if(expandedDays.has(dia)) expandedDays.delete(dia); else expandedDays.add(dia);
+      if (window._lastRows) renderTabela(window._lastRows); else consultar(true);
+    }
+
+    // Status -> materializa virtual com recorrencia_id; atualiza materializada
+    async function onChangeStatus(e){
+      const s=e.currentTarget, v=s.value;
+      try{
+        if (s.dataset.virtual === 'true'){
+          const body = {
+            conta_id: s.dataset.contaId,
+            descricao: s.dataset.descricao,
+            tipo: s.dataset.tipo,
+            valor: Number(s.dataset.valor),
+            data: s.dataset.data,
+            status: v,
+            recorrencia_id: s.dataset.recorrenciaId || null
+          };
+          await api('POST','/rest/v1/transacoes', body);
+        } else {
+          await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v });
+        }
+        consultar(true);
+      } catch(err){ alert('Erro ao alterar status: '+err.message); }
+    }
+
+    function onDeleteTx(e){
+      const id=e.currentTarget.dataset.id;
+      if(!confirm('Excluir transação?'))return;
+      api('DELETE',`/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`)
+        .then(()=>consultar(true)).catch(err=>alert(err.message));
+    }
+    function onDeleteRec(e){
+      const id=e.currentTarget.dataset.recorrenciaId;
+      if(!confirm('Excluir recorrência?'))return;
+      api('DELETE',`/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`)
+        .then(()=>consultar(true)).catch(err=>alert(err.message));
+    }
+
+    // ---------- Editar / Materializar & editar ----------
     const $modal=qs('#modal-backdrop');
-    const f_mode=qs('#f_mode'),f_edit_id=qs('#f_edit_id'),f_edit_virtual=qs('#f_edit_virtual');
-    const f_kind=qs('#f_kind'),f_desc=qs('#f_descricao'),f_tipo=qs('#f_tipo'),f_valor=qs('#f_valor'),f_data=qs('#f_data'),f_qtd=qs('#f_qtd'),grpPar=qs('#grpParcelas'),grpPer=qs('#grpPeriodicidade'),f_periodicidade=qs('#f_periodicidade'),f_status=qs('#f_status');
-    function openModal(){f_mode.value='create';f_edit_id.value='';f_edit_virtual.value='false';f_kind.disabled=false;f_kind.value='unica';grpPar.style.display='none';grpPer.style.display='none';f_desc.value='';f_tipo.value='debito';f_valor.value='';f_data.value=new Date().toISOString().slice(0,10);f_status.value='cadastrada';qs('#modalTitle').textContent='Nova Transação';qs('#m_hint').textContent='';$modal.classList.add('open');$modal.style.display='flex'}
-    function openEditModal({id,virtual,data,descricao,tipo,valor,status}){f_mode.value='edit';f_edit_id.value=id||'';f_edit_virtual.value=virtual?'true':'false';f_kind.value='unica';f_kind.disabled=true;grpPar.style.display='none';grpPer.style.display='none';f_desc.value=descricao||'';f_tipo.value=tipo||'debito';f_valor.value=valor||0;f_data.value=(data||new Date().toISOString().slice(0,10));f_status.value=status||'cadastrada';qs('#modalTitle').textContent=virtual?'Materializar & editar':'Editar Transação';qs('#m_hint').textContent=virtual?'Esta é uma previsão de recorrência; ao salvar será materializada.':'';$modal.classList.add('open');$modal.style.display='flex'}
-    function closeModal(){$modal.classList.remove('open');$modal.style.display='none'}
-    qs('#btnNova').onclick=openModal;qs('#m_cancel').onclick=closeModal;$modal.addEventListener('click',e=>{if(e.target===$modal)closeModal()});window.addEventListener('keydown',e=>{if(e.key==='Escape'&&$modal.classList.contains('open'))closeModal()})
+    const f_mode=qs('#f_mode'),f_edit_id=qs('#f_edit_id'),f_edit_virtual=qs('#f_edit_virtual'),f_edit_recorrencia_id=qs('#f_edit_recorrencia_id');
+    const f_kind=qs('#f_kind'),f_desc=qs('#f_descricao'),f_tipo=qs('#f_tipo'),f_valor=qs('#f_valor'),f_data=qs('#f_data'),grpPar=qs('#grpParcelas'),f_qtd=qs('#f_qtd'),grpPer=qs('#grpPeriodo'),f_periodicidade=qs('#f_periodicidade'),f_status=qs('#f_status');
+
+    function openModal(){
+      f_mode.value='create';f_edit_id.value='';f_edit_virtual.value='false';f_edit_recorrencia_id.value='';
+      qs('#modalTitle').textContent='Nova Transação';
+      grpPar.style.display='none';grpPer.style.display='none';f_kind.value='unica';
+      f_desc.value='';f_tipo.value='debito';f_valor.value='';f_data.value=new Date().toISOString().slice(0,10);f_status.value='cadastrada';
+      $modal.classList.add('open');$modal.style.display='flex';
+    }
+    function openEditModal({id,virtual,data,descricao,tipo,valor,status,recorrencia_id}){
+      f_mode.value='edit';f_edit_id.value=id||'';f_edit_virtual.value=String(!!virtual);f_edit_recorrencia_id.value = recorrencia_id || '';
+      qs('#modalTitle').textContent=virtual?'Materializar & editar':'Editar';
+      grpPar.style.display='none';grpPer.style.display='none';f_kind.value='unica';
+      f_desc.value=descricao||'';f_tipo.value=tipo||'debito';f_valor.value=valor||'';f_data.value=data||new Date().toISOString().slice(0,10);f_status.value=status||'cadastrada';
+      $modal.classList.add('open');$modal.style.display='flex';
+    }
+    function closeModal(){ $modal.classList.remove('open');$modal.style.display='none' }
+
+    qs('#btnNova').onclick=openModal;
+    qs('#m_cancel').onclick=closeModal;
+    document.addEventListener('keydown',(ev)=>{if(ev.key==='Escape'&&$modal.classList.contains('open'))closeModal()})
     f_kind.addEventListener('change',()=>{grpPar.style.display=(f_kind.value==='parcelada')?'block':'none';grpPer.style.display=(f_kind.value==='recorrente')?'block':'none'})
 
-    function onEditTx(e){const b=e.currentTarget;openEditModal({id:b.dataset.id,virtual:false,data:b.dataset.data,descricao:b.dataset.descricao,tipo:b.dataset.tipo,valor:b.dataset.valor,status:b.dataset.status})}
-    function onMatEdit(e){const b=e.currentTarget;openEditModal({id:'',virtual:true,data:b.dataset.data,descricao:b.dataset.descricao,tipo:b.dataset.tipo,valor:b.dataset.valor,status:b.dataset.status})}
+    function onEditTx(e){
+      const b=e.currentTarget;
+      openEditModal({
+        id:b.dataset.id, virtual:false, data:b.dataset.data,
+        descricao:b.dataset.descricao, tipo:b.dataset.tipo, valor:b.dataset.valor, status:b.dataset.status
+      });
+    }
+    function onMatEdit(e){
+      const b=e.currentTarget;
+      openEditModal({
+        id:null, virtual:true, recorrencia_id:b.dataset.recorrenciaId||null, conta_id:b.dataset.contaId,
+        data:b.dataset.data, descricao:b.dataset.descricao, tipo:b.dataset.tipo, valor:b.dataset.valor, status:b.dataset.status
+      });
+    }
 
-    async function getContaIdByNome(n){const r=await api('GET',`/rest/v1/contas?select=id&nome=eq.${encodeURIComponent(n)}`);return Array.isArray(r)&&r[0]?.id}
+    async function getContaIdByNome(n){
+      const r=await api('GET',`/rest/v1/contas?select=id&nome=eq.${encodeURIComponent(n)}`);return Array.isArray(r)&&r[0]?.id;
+    }
     async function salvarCreateOrEdit(){
       try{
         const contaNome=qs('#conta').value; const conta_id=await getContaIdByNome(contaNome); if(!conta_id) throw new Error('Conta não encontrada');
@@ -329,7 +485,8 @@
           } else if (f_kind.value==='parcelada'){
             const n=parseInt(f_qtd.value,10); if(!n||n<2) throw new Error('Qtd de parcelas (>=2)');
             const [y,m,d]=base.data.split('-').map(Number); const arr=[];
-            for(let i=1;i<=n;i++){const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCMonth(dt.getUTCMonth()+i-1);
+            for(let i=1;i<=n;i++){
+              const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCMonth(dt.getUTCMonth()+i-1);
               arr.push({conta_id,descricao:`${base.descricao} (${i}/${n})`,tipo:base.tipo,valor:base.valor,data:dt.toISOString().slice(0,10),status:base.status});
             }
             await api('POST','/rest/v1/transacoes', arr);
@@ -339,29 +496,74 @@
         } else { // edit
           const isVirtual = f_edit_virtual.value==='true';
           if (isVirtual){
-            // materializa diretamente com os dados editados
-            await api('POST','/rest/v1/transacoes', base);
+            // materializa e vincula para não prever mais no mês
+            await api('POST','/rest/v1/transacoes', { ...base, recorrencia_id: f_edit_recorrencia_id.value || null });
           } else {
             await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(f_edit_id.value)}`, base);
           }
         }
-        closeModal(); consultar();
+        closeModal(); consultar(true);
       }catch(err){ alert('Erro ao salvar: '+err.message); }
     }
     qs('#m_save').onclick = salvarCreateOrEdit;
 
-    // ===== Contas
-    async function listarContas(){try{const r=await api('GET','/rest/v1/contas?select=id,nome,saldo_inicial&order=nome.asc');const el=qs('#contasLista');if(!r?.length){el.innerHTML='<div class="muted">Nenhuma conta.</div>';return}el.innerHTML=r.map(c=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:6px 0;"><div><strong>${c.nome}</strong> <span class="muted">— saldo inicial: ${money(c.saldo_inicial)}</span></div><div><button class="btn-link" data-id="${c.id}" data-action="edit">Editar</button><button class="btn-danger" data-id="${c.id}" data-action="del">Excluir</button></div></div>`).join('');Array.from(el.querySelectorAll('button')).forEach(b=>{const id=b.dataset.id,a=b.dataset.action;if(a==='del')b.onclick=()=>{if(confirm('Excluir conta?'))api('DELETE',`/rest/v1/contas?id=eq.${encodeURIComponent(id)}`).then(listarContas).catch(e=>alert(e.message))};if(a==='edit')b.onclick=()=>{const nome=prompt('Novo nome da conta:');if(!nome)return;const saldo=prompt('Novo saldo inicial:','0');if(saldo===null)return;api('PATCH',`/rest/v1/contas?id=eq.${encodeURIComponent(id)}`,{nome,saldo_inicial:Number(saldo)}).then(listarContas).catch(e=>alert(e.message))}})}catch(e){qs('#contasLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`}}
-    qs('#btnCriarConta').onclick=async()=>{try{const nome=(qs('#c_nome').value||'').trim();const saldo=Number(qs('#c_saldo').value||0);if(!nome)return alert('Informe o nome.');await api('POST','/rest/v1/contas',{nome,saldo_inicial:saldo});qs('#c_nome').value='';qs('#c_saldo').value='0';listarContas()}catch(e){alert(e.message)}}
+    // ---------- CONTAS ----------
+    async function listarContas(){
+      try{
+        const r=await api('GET','/rest/v1/contas?select=id,nome,saldo_inicial&order=nome.asc');
+        const el=qs('#contasLista');
+        if(!Array.isArray(r)||!r.length){el.innerHTML='<div class="muted">Nenhuma conta.</div>';return}
+        el.innerHTML=r.map(c=>`<div class="row"><span class="pill">${c.nome}</span><span class="muted">Saldo inicial: ${money(c.saldo_inicial)}</span></div>`).join('');
+      }catch(e){qs('#contasLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
+    }
+    qs('#btnCriarConta').onclick=async()=>{
+      try{
+        const nome=(qs('#c_nome').value||'').trim();const saldo=Number(qs('#c_saldo').value||0);
+        if(!nome)return alert('Informe o nome.');
+        await api('POST','/rest/v1/contas',{nome,saldo_inicial:saldo});
+        qs('#c_nome').value='';qs('#c_saldo').value='0';listarContas();
+      }catch(e){alert(e.message)}
+    }
 
-    // ===== Categorias
-    async function listarCategorias(){try{const r=await api('GET','/rest/v1/categorias?select=id,nome,tipo,descricao&order=nome.asc');const el=qs('#categoriasLista');if(!r?.length){el.innerHTML='<div class="muted">Nenhuma categoria.</div>';return}el.innerHTML=r.map(c=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--border);padding:6px 0;"><div><strong>${c.nome}</strong> <span class="pill">${c.tipo}</span> <span class="muted">${c.descricao||''}</span></div><div><button class="btn-link" data-id="${c.id}" data-action="edit">Editar</button><button class="btn-danger" data-id="${c.id}" data-action="del">Excluir</button></div></div>`).join('');Array.from(el.querySelectorAll('button')).forEach(b=>{const id=b.dataset.id,a=b.dataset.action;if(a==='del')b.onclick=()=>{if(confirm('Excluir categoria?'))api('DELETE',`/rest/v1/categorias?id=eq.${encodeURIComponent(id)}`).then(listarCategorias).catch(e=>alert(e.message))};if(a==='edit')b.onclick=()=>{const nome=prompt('Novo nome:');if(!nome)return;const tipo=prompt('Tipo (debito/credito):','debito');if(!tipo)return;const desc=prompt('Descrição:','')||'';api('PATCH',`/rest/v1/categorias?id=eq.${encodeURIComponent(id)}`,{nome,tipo,descricao:desc}).then(listarCategorias).catch(e=>alert(e.message))}})}catch(e){qs('#categoriasLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`}}
-    qs('#btnCriarCategoria').onclick=async()=>{try{const nome=(qs('#cat_nome').value||'').trim();const tipo=qs('#cat_tipo').value;const descricao=(qs('#cat_desc').value||'').trim();if(!nome)return alert('Informe o nome.');await api('POST','/rest/v1/categorias',{nome,tipo,descricao});qs('#cat_nome').value='';qs('#cat_desc').value='';listarCategorias()}catch(e){alert(e.message)}}
+    // ---------- CATEGORIAS ----------
+    async function listarCategorias(){
+      try{
+        const r=await api('GET','/rest/v1/categorias?select=id,nome,tipo,descricao&order=nome.asc');
+        const el=qs('#catsLista');
+        if(!Array.isArray(r)||!r.length){el.innerHTML='<div class="muted">Nenhuma categoria.</div>';return}
+        el.innerHTML=r.map(c=>`<div class="row"><span class="pill">${c.nome}</span><span class="pill">${c.tipo}</span><span class="muted">${c.descricao||''}</span></div>`).join('');
+      }catch(e){qs('#catsLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
+    }
+    qs('#btnCriarCategoria').onclick=async()=>{
+      try{
+        const nome=(qs('#cat_nome').value||'').trim();
+        if(!nome)return alert('Informe o nome.');
+        await api('POST','/rest/v1/categorias',{nome,tipo:qs('#cat_tipo').value,descricao:(qs('#cat_desc').value||'').trim()});
+        qs('#cat_nome').value='';qs('#cat_desc').value='';listarCategorias();
+      }catch(e){alert(e.message)}
+    }
 
-    // ===== Importação
-    function parseCsv(t){const lines=t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);const headers=lines.shift().split(',').map(h=>h.trim());return lines.map(line=>{const cols=line.split(',');const o={};headers.forEach((h,i)=>o[h]=(cols[i]||'').trim());return o})}
-    qs('#btnImportarCsv').onclick=async()=>{try{const tipo=qs('#imp_tipo').value;const file=qs('#imp_file').files[0];if(!file)return alert('Selecione um CSV.');const text=await file.text(),data=parseCsv(text);if(!data.length)return alert('CSV vazio.');let path='/rest/v1/'+(tipo==='categorias'?'categorias':tipo==='transacoes'?'transacoes':'recorrencias');await api('POST',path,data);qs('#imp_msg').innerHTML=`<span class="pill">OK</span> ${data.length} registros importados em <strong>${tipo}</strong>.`}catch(e){qs('#imp_msg').innerHTML=`<span class="pill">ERRO</span> ${e.message}`}}
-
+    // ---------- Importação ----------
+    function parseCsv(t){
+      const lines=t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+      if(!lines.length) return [];
+      const headers=lines.shift().split(',').map(h=>h.trim());
+      return lines.map(line=>{
+        const cols=line.split(',');
+        const o={}; headers.forEach((h,i)=>o[h]=(cols[i]||'').trim());
+        return o;
+      });
+    }
+    qs('#btnImportarCsv').onclick=async()=>{
+      try{
+        const tipo=qs('#imp_tipo').value; const file=qs('#imp_file').files[0];
+        if(!file) return alert('Selecione um CSV.');
+        const text=await file.text(), data=parseCsv(text);
+        if(!data.length) return alert('CSV vazio.');
+        await api('POST','/rest/v1/'+(tipo==='categorias'?'categorias':tipo==='transacoes'?'transacoes':'recorrencias'),data);
+        qs('#imp_msg').innerHTML=`<span class="pill">OK</span> ${data.length} registros importados em <strong>${tipo}</strong>.`;
+      }catch(e){qs('#imp_msg').innerHTML=`<span class="pill">ERRO</span> ${e.message}`}
+    };
   </script>
 </body>
 </html>
