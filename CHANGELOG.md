@@ -48,3 +48,9 @@
 - Menu passa a usar `navigate(view)` para trocar de seção de forma imediata.
 - `hashchange` fica como fallback; guarda impede navegação sem sessão.
 
+## v1.4.6 — Hotfix navegação/visibilidade
+- Garante gate de sessão (nada aparece antes de logar).
+- Router robusto: apenas uma seção visível (`[data-sec].show`).
+- Corrige `classSaldo is not defined`.
+- Evita conflito entre `hidden` antigo e estilos atuais.
+
