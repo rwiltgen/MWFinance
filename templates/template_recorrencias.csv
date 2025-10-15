@@ -1,3 +1,3 @@
-conta,categoria,descricao,tipo,valor,periodicidade,inicio,fim
-Conta Corrente Nubank,Salário,Salário Mensal,credito,5000,mensal,2025-03-05,
-Conta Corrente Nubank,Academia,Academia Mensal,debito,150,mensal,2025-03-10,
+conta_nome,descricao,tipo,valor,inicio,fim,periodicidade
+Conta Corrente Nubank,Salário Mensal,credito,5000.00,2025-01-05,,mensal
+Conta Corrente Nubank,Academia Mensal,debito,150.00,2025-01-10,,mensal
