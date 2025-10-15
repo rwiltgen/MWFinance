@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.9</title>
+  <title>MWFinance — v1.4.10</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -30,7 +30,7 @@
     tbody tr:nth-child(odd):not(.expander){background:var(--row)}
     tbody tr:nth-child(even):not(.expander){background:var(--row-alt)}
     td{border-bottom:1px solid var(--border);padding:8px;vertical-align:top}
-    .col-dia{width:120px}.col-saldo{width:160px;text-align:right}
+    .col-dia{width:80px;text-align:right}.col-saldo{width:160px;text-align:right}
     .saldo{font-weight:700}.saldo-pos{color:var(--pos)}.saldo-neg{color:var(--neg)}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:#cfd2ff}
     .expand-card{background:#0f0f18;border:1px dashed #34344e;border-radius:12px;padding:10px 12px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
@@ -49,7 +49,7 @@
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.9</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.10</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -240,6 +240,11 @@
     const nav = { saldos:qs('#nav-saldos'), contas:qs('#nav-contas'), categorias:qs('#nav-categorias'), importar:qs('#nav-importar') };
     const sections = { saldos:qs('#view-saldos'), contas:qs('#view-contas'), categorias:qs('#view-categorias'), importar:qs('#view-importar') };
 
+    function onlyDay(diaISO){
+      const dd = (diaISO||'').slice(8,10);
+      return String(Number(dd||'0'));
+    }
+
     async function hdr(){
       const { data:{ session } } = await supabase.auth.getSession();
       if(!session) throw new Error('Sem sessão');
@@ -266,28 +271,60 @@
     // ---------- Sessão/Auth ----------
     let currentSession=null;
     const $auth=qs('#authView'),$ubar=qs('#userBar'),$uinfo=qs('#userInfo'),$logout=qs('#btnLogout');
-    function setSession(s){currentSession=s;const logged=!!s;$auth.style.display=logged?'none':'block';$ubar.style.display=logged?'block':'none';$uinfo.textContent=logged?(s.user.email||'Usuário'):'—';if(logged)show((location.hash.replace(/^#\/?/,'')||'saldos'))}
-    qs('#btnLogin').onclick=async()=>{try{qs('#authMsg').textContent='';const { error } = await supabase.auth.signInWithPassword({ email:qs('#email').value.trim(),password:qs('#password').value});qs('#authMsg').textContent=error?'Erro: '+error.message:'Logado!'}catch(e){qs('#authMsg').textContent='Erro: '+e.message}}
-    qs('#btnSignup').onclick=async()=>{try{const{error}=await supabase.auth.signUp({ email:qs('#email').value.trim(),password:qs('#password').value});qs('#authMsg').textContent=error?'Erro: '+error.message:'Conta criada. Faça login.'}catch(e){qs('#authMsg').textContent='Erro: '+e.message}}
+
+    function setSession(s){
+      currentSession=s;
+      const logged=!!s;
+      document.body.classList.toggle('logged', logged);
+      $auth.style.display=logged?'none':'block';
+      $ubar.style.display=logged?'block':'none';
+      $uinfo.textContent=logged?(s.user.email||'Usuário'):'—';
+      if(logged) show((location.hash.replace(/^#\/?/,'')||'saldos'));
+    }
+
+    qs('#btnLogin').onclick=async()=>{
+      try{
+        qs('#authMsg').textContent='';
+        const { error } = await supabase.auth.signInWithPassword({ email:qs('#email').value.trim(),password:qs('#password').value});
+        qs('#authMsg').textContent=error?'Erro: '+error.message:'Logado!';
+      }catch(e){qs('#authMsg').textContent='Erro: '+e.message}
+    };
+    qs('#btnSignup').onclick=async()=>{
+      try{
+        const{error}=await supabase.auth.signUp({ email:qs('#email').value.trim(),password:qs('#password').value});
+        qs('#authMsg').textContent=error?'Erro: '+error.message:'Conta criada. Faça login.'
+      }catch(e){qs('#authMsg').textContent='Erro: '+e.message}
+    };
     const PROD_REDIRECT='https://mwfinance.vercel.app';
-    qs('#btnLoginGoogle').onclick=async()=>{const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{redirectTo:PROD_REDIRECT}});if(error)alert(error.message)}
-    $logout.onclick=async()=>{await supabase.auth.signOut();setSession(null);location.hash='#/saldos'}
-    supabase.auth.onAuthStateChange((_e,s)=>{setSession(s);if(!s)history.replaceState(null,'',location.pathname+location.search)});
-    (async()=>{const{data:{session}}=await supabase.auth.getSession();setSession(session);if(session&&!location.hash)navigate('saldos')})();
+    qs('#btnLoginGoogle').onclick=async()=>{
+      const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{redirectTo:PROD_REDIRECT}});
+      if(error)alert(error.message)
+    };
+    $logout.onclick=async()=>{await supabase.auth.signOut();setSession(null);location.hash='#/saldos'};
+
+    supabase.auth.onAuthStateChange((_e,s)=>{ setSession(s); if(!s) history.replaceState(null,'',location.pathname+location.search) });
+    (async()=>{const{data:{session}}=await supabase.auth.getSession(); setSession(session); if(session&&!location.hash)navigate('saldos')})();
 
     // ---------- Navegação ----------
     window.addEventListener('hashchange',()=>{ if(currentSession) show(location.hash.replace(/^#\/?/,'')||'saldos') });
     ['saldos','contas','categorias','importar'].forEach(v=>nav[v].onclick=(e)=>{e.preventDefault();navigate(v)})
 
     // ---------- SALDOS ----------
-    const $conta=qs('#conta'),$mesRef=qs('#mesRef'),$out=qs('#output');$mesRef.value=new Date().toISOString().slice(0,7);
-    const expandedDays = new Set(); // mantém dias expandidos
-    window._lastRows = null;        // cache da última resposta
+    const $conta=qs('#conta'),$mesRef=qs('#mesRef'),$out=qs('#output');
+    $mesRef.value=new Date().toISOString().slice(0,7);
 
-    function addMonthsYM(ym,d){const[y,m]=ym.split('-').map(Number);const dt=new Date(Date.UTC(Number(y),Number(m)-1,1));dt.setUTCMonth(dt.getUTCMonth()+d);return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}`}
+    const expandedDays = new Set();
+    window._lastRows = null;
+
+    function addMonthsYM(ym,d){
+      const[y,m]=ym.split('-').map(Number);
+      const dt=new Date(Date.UTC(Number(y),Number(m)-1,1));
+      dt.setUTCMonth(dt.getUTCMonth()+d);
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}`;
+    }
     qs('#btnAtualizar').onclick=()=>consultar(false);
-    qs('#btnMesAnterior').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,-1);consultar(false)}
-    qs('#btnMesSeguinte').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,+1);consultar(false)}
+    qs('#btnMesAnterior').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,-1);consultar(false)};
+    qs('#btnMesSeguinte').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,+1);consultar(false)};
 
     async function carregarContas(){
       try{
@@ -304,7 +341,10 @@
         const conta=$conta.value,ym=$mesRef.value;
         if(!conta||!ym){$out.innerHTML='<div class="muted">Selecione a conta e mês.</div>';return}
         const ref=ym+'-01';
-        const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`,{method:'POST',headers:await hdr(),body:JSON.stringify({ conta_nome:conta, referencia: ref })});
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`,{
+          method:'POST',headers:await hdr(),
+          body:JSON.stringify({ conta_nome:conta, referencia: ref })
+        });
         if(!r.ok) throw new Error(await r.text());
         const rows = await r.json();
         if(!keepExpanded) expandedDays.clear();
@@ -322,7 +362,6 @@
         </table>`;
       $out.innerHTML = html;
 
-      // bind
       qsa('.toggle').forEach(b=>b.addEventListener('click',toggleExp));
       qsa('.tx-status').forEach(s=>s.addEventListener('change',onChangeStatus));
       qsa('.tx-del').forEach(b=>b.addEventListener('click',onDeleteTx));
@@ -333,6 +372,7 @@
 
     function linhaDia(r){
       const diaISO = r.dia;
+      const dayNum = onlyDay(diaISO);
       const txs = Array.isArray(r.transacoes)? r.transacoes : [];
       const isOpen = expandedDays.has(diaISO);
       const cnt = txs.length;
@@ -343,7 +383,7 @@
         : `<span class="muted">–</span>`;
 
       const linha = `<tr class="row-dia">
-        <td class="col-dia">${new Date(diaISO).toLocaleDateString()}</td>
+        <td class="col-dia">${dayNum}</td>
         <td>${toggleBtn}</td>
         <td class="col-saldo saldo ${saldoClass}">${money(r.saldo)}</td>
       </tr>`;
@@ -371,7 +411,7 @@
         const editBtn = t.virtual
           ? `<button class="tx-mat-edit btn-link"
                data-virtual="true" data-recorrencia-id="${t.recorrencia_id||''}" data-conta-id="${t.conta_id||''}"
-               data-data="${t.data||dia}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
+               data-data="${t.data||dia}" data-descricao="${(t.descricao||'&quot;').replace(/"/g,'&quot;')}"
                data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}">Materializar & editar</button>`
           : `<button class="tx-edit btn-link"
                data-virtual="false" data-id="${t.id}"
@@ -493,10 +533,9 @@
           } else {
             await api('POST','/rest/v1/recorrencias', {conta_id,descricao:base.descricao,tipo:base.tipo,valor:base.valor,inicio:base.data,fim:null,periodicidade:'mensal'});
           }
-        } else { // edit
+        } else {
           const isVirtual = f_edit_virtual.value==='true';
           if (isVirtual){
-            // materializa e vincula para não prever mais no mês
             await api('POST','/rest/v1/transacoes', { ...base, recorrencia_id: f_edit_recorrencia_id.value || null });
           } else {
             await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(f_edit_id.value)}`, base);
