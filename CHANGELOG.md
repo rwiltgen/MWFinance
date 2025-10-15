@@ -4,10 +4,25 @@ O formato segue (quando possível) o [Conventional Changelog](https://www.conven
 
 ---
 
+## [1.4.13] — 2025-10-15
+### Fixes
+- **Login (UX):** remove o aviso sobre RLS/RPC da tela de login e simplifica mensagens de feedback.
+- **Acessibilidade:** foco visível em inputs/botões, mensagens de erro consistentes.
+
+> Observação: Não há alterações de backend nesta versão; somente ajustes de UI/UX no fluxo de autenticação.
+
+---
+
+## [1.4.12] — 2025-10-15
+### Status
+- **Yanked** (não chegou a ser publicado em `main`). Alterações foram substituídas diretamente por 1.4.13.
+
+---
+
 ## [1.4.11] — 2025-10-15
 ### Chore
-- **bump de versão:** incrementa UI e documentação para `v1.4.11` após ajustes prévios de hotfix.
-- Sem mudanças funcionais além do número de versão (garante rastreabilidade).
+- **bump de versão:** incrementa UI e documentação para `v1.4.11` após ajustes de hotfix anteriores, garantindo rastreabilidade.
+- Sem mudanças funcionais além do número de versão.
 
 ---
 
@@ -22,9 +37,9 @@ O formato segue (quando possível) o [Conventional Changelog](https://www.conven
 
 ## [1.4.9] — 2025-10-15
 ### Fixes
-- **recorrências:** ao efetivar/materializar uma previsão, cria transação **com `recorrencia_id`**, impedindo que a RPC volte a prever a mesma ocorrência no mês (sem duplicidade).
-- **lista de transações:** mantém o estado de **dias expandidos** após editar ou atualizar o mês.
-- **colapso:** botão **toggle** abre/fecha a seção de transações do dia.
+- **Recorrências:** ao efetivar/materializar uma previsão, cria transação **com `recorrencia_id`**, impedindo que a RPC volte a prever a mesma ocorrência no mês (sem duplicidade).
+- **Lista de transações:** mantém o estado de **dias expandidos** após editar ou atualizar o mês.
+- **Colapso:** botão **toggle** abre/fecha a seção de transações do dia.
 - **UI:** rótulo de versão atualizado no topo.
 
 ---
@@ -41,9 +56,9 @@ O formato segue (quando possível) o [Conventional Changelog](https://www.conven
 
 ## [1.4.7] — 2025-10-12
 ### Fixes
-- **templates CSV:** garantidos como arquivos `.csv` reais e links de download corrigidos em `/templates/*.csv`.
-- **gate de sessão:** menus/seções do app só aparecem após login.
-- **router:** navegação via SPA mais robusta (fallback por `hashchange` e bloqueio quando não autenticado).
+- **Templates CSV:** garantidos como arquivos `.csv` reais e links de download corrigidos em `/templates/*.csv`.
+- **Gate de sessão:** menus/seções do app só aparecem após login.
+- **Router:** navegação via SPA mais robusta (fallback por `hashchange` e bloqueio quando não autenticado).
 
 ---
 
