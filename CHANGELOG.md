@@ -1,4 +1,41 @@
-## [1.0.0](https://github.com/rwiltgen/MWFinance/compare/v1.4.0...v1.0.0) (2025-10-11)
+## [1.0.0](https://github.com/rwiltgen/MWFinance/compare/v1.4.8...v1.0.0) (2025-10-15)
+## [1.4.8](https://github.com/rwiltgen/MWFinance/compare/v1.4.7...v1.4.8) (2025-10-15)
+
+### Features
+
+* **tx-edit:** reintroduz edição de transações + materializar & editar para previsões (v1.4.8) ([4deed48](https://github.com/rwiltgen/MWFinance/commit/4deed4866dd99cd82bc1d0c73dcd5546954c4ecd))
+## [1.4.7](https://github.com/rwiltgen/MWFinance/compare/v1.4.6...v1.4.7) (2025-10-15)
+
+### Bug Fixes
+
+* **templates:** links .csv e inclusão dos arquivos de template ([473c706](https://github.com/rwiltgen/MWFinance/commit/473c706e93f4e0f0c5b0e0067b504ef30cbc3250))
+* **ui,router:** gate de sessão + seção única visível + corrige classSaldo (v1.4.6) ([2db72b7](https://github.com/rwiltgen/MWFinance/commit/2db72b7687236da01d16e44b47ffdd6690445c2e))
+## [1.4.6](https://github.com/rwiltgen/MWFinance/compare/v1.4.5...v1.4.6) (2025-10-11)
+
+### Bug Fixes
+
+* restaura index correto (router navigate) [hotfix] ([8afaf0f](https://github.com/rwiltgen/MWFinance/commit/8afaf0f397e8c6c5c0da3fb2ea1f3793c15d9c3e))
+## [1.4.5](https://github.com/rwiltgen/MWFinance/compare/v1.4.4...v1.4.5) (2025-10-11)
+
+### Bug Fixes
+
+* **router:** navegação imediata via navigate(view) + fallback hashchange ([da41a80](https://github.com/rwiltgen/MWFinance/commit/da41a80a3911b03a63607ac9717717f2abe5c18e))
+## [1.4.4](https://github.com/rwiltgen/MWFinance/compare/v1.4.3...v1.4.4) (2025-10-11)
+
+### Bug Fixes
+
+* **auth,ui:** oculta app completa até login (body.logged) e mantém templates .csv ([38082fd](https://github.com/rwiltgen/MWFinance/commit/38082fd2e3bfafea9a0a06a91529f96bef762625))
+## [1.4.3](https://github.com/rwiltgen/MWFinance/compare/v1.4.2...v1.4.3) (2025-10-11)
+
+### Bug Fixes
+
+* **auth,import:** esconde nav antes do login e corrige links .csv dos templates ([92f26e0](https://github.com/rwiltgen/MWFinance/commit/92f26e07ebffd6b8da592956dce667518cf30181))
+* **ui:** nav mobile com ícones, links legíveis e alinhamento dos filtros em Saldos ([f6be397](https://github.com/rwiltgen/MWFinance/commit/f6be397fb00047248cb46d39d5ef9b9b9408c8d0))
+## [1.4.2](https://github.com/rwiltgen/MWFinance/compare/v1.4.1...v1.4.2) (2025-10-11)
+
+### Bug Fixes
+
+* **ui,db:** cria categorias + corrige header de Saldos e adiciona links de templates na Importação ([a7e12e9](https://github.com/rwiltgen/MWFinance/commit/a7e12e992d66ff821ba970a48bcfd9790503ad0f))
 ## [1.4.0](https://github.com/rwiltgen/MWFinance/compare/v1.3.1...v1.4.0) (2025-10-11)
 
 ### Features
@@ -23,34 +60,3 @@
 ### Reverts
 
 * Revert "UX: botão Nova Transação" ([7c475ba](https://github.com/rwiltgen/MWFinance/commit/7c475ba61844b33fea530fe3f9fead3710c6aaad))
-
-## v1.4.1 — Hotfix: categorias + UX
-- Cria tabela `public.categorias` com RLS (policies idempotentes).
-- Corrige desalinhamento na tela de **Saldos** (remove sticky agressivo do header).
-- Templates de importação agora com links para download na aba **Importar**.
-
-## v1.4.2 — UX mobile e alinhamento
-- Navegação mobile com ícones e rolagem horizontal (sem quebra de linha).
-- Links de templates com cor legível no tema escuro.
-- Cabeçalho da seção **Saldos** realinhado (grupo de filtros com baseline uniforme).
-
-
-## v1.4.3 — Correções de acesso e templates
-- Esconde navegação antes do login (menus só aparecem após sessão autenticada).
-- Links de download dos templates apontando corretamente para arquivos `.csv`.
-
-## v1.4.4 — Gate de sessão + templates
-- Esconde TODA a aplicação (nav + seções) até o usuário estar autenticado (`body.logged`).
-- `boot()` não força navegação para `#/saldos` quando não logado.
-- Templates de importação garantidos como `.csv` (links corrigidos).
-
-## v1.4.5 — Navegação responsiva
-- Menu passa a usar `navigate(view)` para trocar de seção de forma imediata.
-- `hashchange` fica como fallback; guarda impede navegação sem sessão.
-
-## v1.4.6 — Hotfix navegação/visibilidade
-- Garante gate de sessão (nada aparece antes de logar).
-- Router robusto: apenas uma seção visível (`[data-sec].show`).
-- Corrige `classSaldo is not defined`.
-- Evita conflito entre `hidden` antigo e estilos atuais.
-
