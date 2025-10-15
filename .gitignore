@@ -2,3 +2,6 @@ index.html.bkp
 *.pat
 # sql local
 sql/local_backfill_user.sql
+
+# LibreOffice lock files
+.~lock.*#
