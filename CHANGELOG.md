@@ -4,6 +4,13 @@ O formato segue (quando possível) o [Conventional Changelog](https://www.conven
 
 ---
 
+## [1.4.11] — 2025-10-15
+### Chore
+- **bump de versão:** incrementa UI e documentação para `v1.4.11` após ajustes prévios de hotfix.
+- Sem mudanças funcionais além do número de versão (garante rastreabilidade).
+
+---
+
 ## [1.4.10] — 2025-10-15
 ### Fixes
 - **UI topo:** restaura cabeçalho (menus, login, botão “Sair”) com `body.logged` controlando visibilidade.

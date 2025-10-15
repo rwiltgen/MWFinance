@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.10</title>
+  <title>MWFinance — v1.4.11</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -49,7 +49,7 @@
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.10</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.11</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -411,7 +411,7 @@
         const editBtn = t.virtual
           ? `<button class="tx-mat-edit btn-link"
                data-virtual="true" data-recorrencia-id="${t.recorrencia_id||''}" data-conta-id="${t.conta_id||''}"
-               data-data="${t.data||dia}" data-descricao="${(t.descricao||'&quot;').replace(/"/g,'&quot;')}"
+               data-data="${t.data||dia}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
                data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}">Materializar & editar</button>`
           : `<button class="tx-edit btn-link"
                data-virtual="false" data-id="${t.id}"
