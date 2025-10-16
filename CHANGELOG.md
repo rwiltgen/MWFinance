@@ -60,3 +60,11 @@
 ### Reverts
 
 * Revert "UX: botão Nova Transação" ([7c475ba](https://github.com/rwiltgen/MWFinance/commit/7c475ba61844b33fea530fe3f9fead3710c6aaad))
+
+## [1.4.15] — 2025-10-15
+### Added
+- **backup_db.html:** nova ferramenta para exportar todo o conteúdo do banco (contas, categorias, recorrências e transações) em um arquivo JSON.
+- Permite “congelar” o estado do sistema diretamente do navegador, usando a mesma sessão Supabase Auth.
+- Facilita auditorias e checkpoints manuais na versão Free do Supabase (sem precisar de pg_dump).
+
+> Esta versão adiciona apenas a funcionalidade de backup via interface web, sem alterações no backend.

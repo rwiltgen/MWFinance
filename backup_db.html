@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>MWFinance — Backup DB (v1.4.15)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="./config.js"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      background: #0c0c12;
+      color: #eee;
+      margin: 40px;
+      text-align: center;
+    }
+    button {
+      background: #3c7cff;
+      color: white;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover { background: #568dff; }
+    pre {
+      text-align: left;
+      background: #151520;
+      color: #cfd2ff;
+      padding: 10px;
+      border-radius: 10px;
+      max-height: 300px;
+      overflow: auto;
+    }
+    .muted { color: #aaa; font-size: 14px; }
+    .ok { color: #9cffb3; }
+    .err { color: #ff8a8a; }
+  </style>
+</head>
+<body>
+  <h1>💾 MWFinance — Backup do Banco de Dados</h1>
+  <p class="muted">Versão 1.4.15 — gera um snapshot JSON completo das tabelas<br>contas, categorias, recorrencias e transacoes</p>
+  <button id="btnBackup">Gerar Backup</button>
+  <p id="status" class="muted"></p>
+  <pre id="log"></pre>
+
+<script>
+(async () => {
+  const { createClient } = supabase;
+  const supabaseClient = createClient(window.CONFIG.SUPABASE_URL, window.CONFIG.SUPABASE_ANON_KEY);
+  const statusEl = document.getElementById('status');
+  const logEl = document.getElementById('log');
+  const btn = document.getElementById('btnBackup');
+
+  async function checkSession() {
+    const { data: { session }, error } = await supabaseClient.auth.getSession();
+    if (error || !session) {
+      statusEl.innerHTML = '<span class="err">⚠️ Você precisa estar logado no MWFinance.</span><br>Abra o <a href="./index.html" target="_blank">index.html</a> e faça login primeiro.';
+      btn.disabled = true;
+      throw new Error('Sem sessão ativa');
+    }
+    return session.user;
+  }
+
+  async function fetchTable(name) {
+    const { data, error } = await supabaseClient.from(name).select('*');
+    if (error) throw new Error(`${name}: ${error.message}`);
+    logEl.textContent += `✓ ${name}: ${data.length} registros exportados\n`;
+    return data;
+  }
+
+  async function gerarBackup() {
+    try {
+      btn.disabled = true;
+      statusEl.innerHTML = '⏳ Gerando backup... aguarde.';
+      logEl.textContent = '';
+
+      const user = await checkSession();
+
+      const [contas, categorias, recorrencias, transacoes] = await Promise.all([
+        fetchTable('contas'),
+        fetchTable('categorias'),
+        fetchTable('recorrencias'),
+        fetchTable('transacoes'),
+      ]);
+
+      const snapshot = {
+        version: '1.4.15',
+        timestamp: new Date().toISOString(),
+        user_id: user.id,
+        data: { contas, categorias, recorrencias, transacoes }
+      };
+
+      const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const fileName = `mwfinance_backup_${new Date().toISOString().slice(0,10)}.json`;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      statusEl.innerHTML = `<span class="ok">✅ Backup gerado com sucesso!</span><br>Arquivo: <strong>${fileName}</strong>`;
+      logEl.textContent += '\nBackup concluído.';
+    } catch (err) {
+      console.error(err);
+      statusEl.innerHTML = `<span class="err">❌ Erro ao gerar backup:</span> ${err.message}`;
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  btn.addEventListener('click', gerarBackup);
+})();
+</script>
+</body>
+</html>
