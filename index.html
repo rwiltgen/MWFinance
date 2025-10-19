@@ -2,10 +2,9 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.17</title>
+  <title>MWFinance — v1.4.18</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    /* Mantém o mesmo CSS da versão anterior (1.4.16) */
     :root{
       --bg:#0b0b10; --card:#141421; --row:#11111a; --row-alt:#11111c;
       --muted:#a8a8b3; --border:#2a2a3a; --accent:#3c7cff;
@@ -44,35 +43,56 @@
     #userBar .right{display:flex;gap:10px;align-items:center}
     #userBar .avatar{width:24px;height:24px;border-radius:99px;border:1px solid var(--border);background:#2a2a3a}
     body:not(.logged) .app{display:none}
+    #modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:1000}
+    #modal-backdrop.open{display:flex}
+    .modal{width:100%;max-width:680px;background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+    .error{background:#2a151a;border:1px solid #6a2a33;color:#ffb7bf;padding:8px;border-radius:10px}
+    .hint{font-size:12px;color:#b6b6c6}
+    /* Google button */
     .gbtn{display:inline-flex;align-items:center;gap:10px;background:#fff;color:#3c4043;border:1px solid #dadce0;border-radius:8px;padding:10px 14px;font-weight:600}
     .gbtn:hover{background:#f8faff}
     .glogo{display:inline-flex;width:18px;height:18px}
+    /* Dia (UX) */
+    .daynum{font-weight:700}
+    .row-dia.past .daynum{color:var(--muted)}
+    .row-dia.today .daynum.pos{color:var(--good)}
+    .row-dia.today .daynum.neg{color:var(--neg)}
+    .row-dia.row-neg{border-left:3px solid var(--neg)}
   </style>
 </head>
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.17</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.18</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
         <button id="btnLogout" class="btn-link">Sair</button>
       </div>
     </div>
+
+    <nav class="app">
+      <a href="#/saldos" id="nav-saldos" class="active"><span>📊</span><span class="label">Saldos</span></a>
+      <a href="#/contas" id="nav-contas"><span>💳</span><span class="label">Contas</span></a>
+      <a href="#/categorias" id="nav-categorias"><span>🏷️</span><span class="label">Categorias</span></a>
+      <a href="#/importar" id="nav-importar"><span>📥</span><span class="label">Importar</span></a>
+    </nav>
   </header>
 
   <main>
+    <!-- AUTH -->
     <section id="authView" class="card">
-      <h2>Entrar</h2>
+      <h2 style="margin:0 0 10px;">Entrar</h2>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
         <input id="email" type="email" placeholder="Seu e-mail" />
         <input id="password" type="password" placeholder="Senha" />
       </div>
-      <div class="row" style="justify-content:flex-end;gap:8px;margin-top:8px">
+      <div class="row" style="justify-content:flex-end; gap:8px; margin-top:8px">
         <button id="btnSignup" class="btn-link">Criar conta</button>
         <button id="btnLogin" class="btn-primary">Entrar</button>
-        <button id="btnLoginGoogle" class="gbtn">
+        <button id="btnLoginGoogle" class="gbtn" title="Google OAuth">
           <span class="glogo" aria-hidden="true">
+            <!-- Google "G" -->
             <svg viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.9 0 7 1.6 9.2 3.1l6.2-6.2C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.4 13.2l7.7 6C12 13.4 17.5 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.5 24.5c0-1.7-.2-3.4-.6-5H24v9.5h12.7c-.5 2.6-2 4.8-4.2 6.3l6.4 5c3.7-3.4 7.6-8.8 7.6-15.8z"/>
@@ -83,29 +103,629 @@
           Entrar com Google
         </button>
       </div>
-      <p id="authMsg" class="muted"></p>
+      <p id="authMsg" class="hint" style="margin:6px 0 0;"></p>
     </section>
+
+    <!-- SALDOS -->
+    <section id="view-saldos" class="card app" style="display:none">
+      <h2 style="margin:0 0 10px;">Saldos diários</h2>
+      <div class="row">
+        <div class="row" style="flex:1;align-items:flex-end">
+          <div>
+            <label>Conta</label><br/>
+            <select id="conta" style="min-width:220px"></select>
+          </div>
+          <div>
+            <label>Mês de referência</label><br/>
+            <div class="row" style="margin:0">
+              <button id="btnMesAnterior" class="btn-link">◀</button>
+              <input id="mesRef" type="month" />
+              <button id="btnMesSeguinte" class="btn-link">▶</button>
+            </div>
+          </div>
+        </div>
+        <div class="row" style="margin:0">
+          <button id="btnAtualizar" class="btn-primary">Atualizar</button>
+          <button id="btnNova" class="btn-link">Nova transação</button>
+        </div>
+      </div>
+      <div id="output"></div>
+    </section>
+
+    <!-- CONTAS -->
+    <section id="view-contas" class="card app" style="display:none">
+      <h2 style="margin:0 0 10px;">Contas</h2>
+      <div class="row">
+        <input id="c_nome" type="text" placeholder="Nome da conta"/>
+        <input id="c_saldo" type="number" step="0.01" value="0"/>
+        <button id="btnCriarConta" class="btn-primary">Criar</button>
+      </div>
+      <div id="contasLista"></div>
+    </section>
+
+    <!-- CATEGORIAS -->
+    <section id="view-categorias" class="card app" style="display:none">
+      <h2 style="margin:0 0 10px;">Categorias</h2>
+      <div class="row">
+        <input id="cat_nome" type="text" placeholder="Nome"/>
+        <select id="cat_tipo">
+          <option value="debito">Débito</option>
+          <option value="credito">Crédito</option>
+        </select>
+        <input id="cat_desc" type="text" placeholder="Descrição (opcional)"/>
+        <button id="btnCriarCategoria" class="btn-primary">Criar</button>
+      </div>
+      <div id="catsLista"></div>
+    </section>
+
+    <!-- IMPORTAR -->
+    <section id="view-importar" class="card app" style="display:none">
+      <h2 style="margin:0 0 10px;">Importar CSV</h2>
+      <div class="row">
+        <select id="imp_tipo">
+          <option value="transacoes">Transações</option>
+          <option value="recorrencias">Recorrências</option>
+          <option value="categorias">Categorias</option>
+        </select>
+        <input id="imp_file" type="file" accept=".csv" />
+        <button id="btnImportarCsv" class="btn-primary">Importar</button>
+      </div>
+      <div id="templates" class="muted">
+        Templates:
+        <a href="./templates/template_categorias.csv" download>template_categorias.csv</a>,
+        <a href="./templates/template_transacoes.csv" download>template_transacoes.csv</a>,
+        <a href="./templates/template_recorrencias.csv" download>template_recorrencias.csv</a>
+      </div>
+      <div id="imp_msg" style="margin-top:8px;"></div>
+    </section>
+
+    <!-- MODAL NOVA/EDITAR -->
+    <div id="modal-backdrop">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
+        <div class="row" style="flex-direction:column; align-items:stretch;">
+          <input id="f_mode" type="hidden" value="create"/>
+          <input id="f_edit_id" type="hidden" value=""/>
+          <input id="f_edit_virtual" type="hidden" value="false"/>
+          <input id="f_edit_recorrencia_id" type="hidden" value=""/>
+
+          <label>Tipo do lançamento</label>
+          <select id="f_kind">
+            <option value="unica" selected>Única</option>
+            <option value="parcelada">Parcelada</option>
+            <option value="recorrente">Recorrente</option>
+          </select>
+
+          <label>Descrição</label>
+          <input id="f_descricao" type="text" placeholder="Ex.: Mensalidade academia"/>
+
+          <div class="row" style="gap:10px;">
+            <div style="flex:1">
+              <label>Tipo</label>
+              <select id="f_tipo">
+                <option value="debito">Débito</option>
+                <option value="credito">Crédito</option>
+              </select>
+            </div>
+            <div style="flex:1">
+              <label>Valor</label>
+              <input id="f_valor" type="number" step="0.01" min="0"/>
+            </div>
+          </div>
+
+          <label>Data</label>
+          <input id="f_data" type="date"/>
+
+          <div class="row" id="grpParcelas" style="display:none;">
+            <div style="flex:1">
+              <label>Qtd. parcelas</label>
+              <input id="f_qtd" type="number" min="2" value="2"/>
+            </div>
+          </div>
+
+          <div class="row" id="grpPeriodo" style="display:none;">
+            <div style="flex:1">
+              <label>Periodicidade</label>
+              <select id="f_periodicidade" disabled>
+                <option value="mensal" selected>Mensal</option>
+              </select>
+            </div>
+          </div>
+
+          <label>Categoria</label>
+          <select id="f_categoria">
+            <option value="">(sem categoria)</option>
+          </select>
+
+          <label>Status</label>
+          <select id="f_status">
+            <option value="cadastrada" selected>Cadastrada</option>
+            <option value="agendada">Agendada</option>
+            <option value="efetivada">Efetivada</option>
+          </select>
+
+          <div id="grpScope" style="display:none; margin-top:8px;">
+            <label>Ao editar uma recorrência virtual, aplicar em:</label>
+            <select id="f_scope">
+              <option value="occurrence" selected>Somente esta ocorrência</option>
+              <option value="series">Toda a recorrência</option>
+              <option value="from_now">Dali para frente</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex; gap:8px; justify-content:flex-end; margin-top:12px;">
+          <button id="m_cancel" class="btn-link">Cancelar</button>
+          <button id="m_save" class="btn-primary">Salvar</button>
+        </div>
+        <p id="m_hint" class="muted" style="margin-top:8px;"></p>
+      </div>
+    </div>
   </main>
 
   <script src="./config.js"></script>
   <script type="module">
     import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
-    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } });
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
 
+    // ---------- Helpers ----------
+    const qs = (s)=>document.querySelector(s);
+    const qsa = (s)=>Array.from(document.querySelectorAll(s));
+    const money = (n)=> (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+    const nav = { saldos:qs('#nav-saldos'), contas:qs('#nav-contas'), categorias:qs('#nav-categorias'), importar:qs('#nav-importar') };
+    const sections = { saldos:qs('#view-saldos'), contas:qs('#view-contas'), categorias:qs('#view-categorias'), importar:qs('#view-importar') };
+    const todayISO = new Date().toISOString().slice(0,10);
+    function onlyDay(diaISO){ return String(Number((diaISO||'').slice(8,10)||'0')); }
+
+    async function hdr(){
+      const { data:{ session } } = await supabase.auth.getSession();
+      if(!session) throw new Error('Sem sessão');
+      return {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json'
+      };
+    }
+    async function api(method, path, body){
+      const r = await fetch(`${SUPABASE_URL}${path}`, { method, headers: await hdr(), body: body? JSON.stringify(body): undefined });
+      if(!r.ok){ const t = await r.text(); throw new Error(t||r.status); }
+      return r.status===204 ? true : r.json();
+    }
+    function show(view){
+      Object.entries(sections).forEach(([k,el])=>el.style.display=(k===view)?'block':'none');
+      Object.entries(nav).forEach(([k,a])=>a.classList.toggle('active',k===view));
+      if(view==='saldos') consultar();
+      if(view==='contas') listarContas();
+      if(view==='categorias') listarCategorias();
+    }
+    function navigate(view){ if(!currentSession) return; location.hash='#/'+view; show(view); }
+
+    // ---------- Sessão/Auth ----------
+    let currentSession=null;
+    const $auth=qs('#authView'),$ubar=qs('#userBar'),$uinfo=qs('#userInfo'),$logout=qs('#btnLogout'),$authMsg=qs('#authMsg');
+
+    function setSession(s){
+      currentSession=s;
+      const logged=!!s;
+      document.body.classList.toggle('logged', logged);
+      $auth.style.display=logged?'none':'block';
+      $ubar.style.display=logged?'block':'none';
+      $uinfo.textContent=logged?(s.user.email||'Usuário'):'—';
+      if(logged){
+        const target = (location.hash.replace(/^#\/?/,'')||'saldos');
+        show(target);
+      }
+    }
+    function showMsg(kind, text){
+      if(!text){ $authMsg.textContent=''; $authMsg.className='hint'; return; }
+      if(kind==='error'){ $authMsg.className='error'; $authMsg.textContent=text; }
+      else { $authMsg.className='hint'; $authMsg.textContent=text; }
+    }
+
+    qs('#btnLogin').onclick=async()=>{
+      try{
+        showMsg();
+        const email = qs('#email').value.trim();
+        const password = qs('#password').value;
+        if(!email || !password){ showMsg('error','Informe e-mail e senha.'); return; }
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if(error) showMsg('error', 'Erro: '+error.message);
+        else showMsg('ok','Logado!');
+      }catch(e){ showMsg('error','Erro: '+e.message) }
+    };
+    qs('#btnSignup').onclick=async()=>{
+      try{
+        showMsg();
+        const email = qs('#email').value.trim();
+        const password = qs('#password').value;
+        if(!email || !password){ showMsg('error','Informe e-mail e senha para criar a conta.'); return; }
+        const { error } = await supabase.auth.signUp({ email, password });
+        if(error) showMsg('error','Erro: '+error.message);
+        else showMsg('ok','Conta criada. Verifique seu e-mail e faça login.');
+      }catch(e){ showMsg('error','Erro: '+e.message) }
+    };
+
+    // Redirecionamento dinâmico (preview fica no preview; prod fica na prod)
     const hostname = window.location.hostname;
     const isProd = hostname === 'mwfinance.vercel.app';
     const redirectTo = isProd ? 'https://mwfinance.vercel.app' : window.location.origin;
 
-    async function loginGoogle() {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo }
-      });
-      if (error) alert('Erro: ' + error.message);
+    qs('#btnLoginGoogle').onclick=async()=>{
+      const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{redirectTo} });
+      if(error) showMsg('error', error.message);
+    };
+
+    $logout.onclick=async()=>{await supabase.auth.signOut();setSession(null);location.hash='#/saldos'};
+
+    supabase.auth.onAuthStateChange((_e,s)=>{
+      setSession(s);
+      // mantém hash simples após retorno do Supabase
+      if(s && location.href.includes('access_token')) {
+        history.replaceState(null, '', location.origin + location.pathname + '#/saldos');
+      }
+    });
+    (async()=>{const{data:{session}}=await supabase.auth.getSession(); setSession(session); if(session&&!location.hash)navigate('saldos')})();
+
+    // ---------- Navegação ----------
+    window.addEventListener('hashchange',()=>{ if(currentSession) show(location.hash.replace(/^#\/?/,'')||'saldos') });
+    ['saldos','contas','categorias','importar'].forEach(v=>nav[v].onclick=(e)=>{e.preventDefault();navigate(v)})
+
+    // ---------- SALDOS ----------
+    const $conta=qs('#conta'),$mesRef=qs('#mesRef'),$out=qs('#output');
+    $mesRef.value=new Date().toISOString().slice(0,7);
+
+    const expandedDays = new Set();
+    window._lastRows = null;
+
+    let categoriasCache = [];
+    async function carregarCategoriasCache(){
+      try{
+        const r=await api('GET','/rest/v1/categorias?select=id,nome,tipo&order=nome.asc');
+        categoriasCache = Array.isArray(r)? r : [];
+      }catch(e){ categoriasCache=[]; }
+    }
+    carregarCategoriasCache();
+
+    function addMonthsYM(ym,d){
+      const[y,m]=ym.split('-').map(Number);
+      const dt=new Date(Date.UTC(Number(y),Number(m)-1,1));
+      dt.setUTCMonth(dt.getUTCMonth()+d);
+      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}`;
+    }
+    qs('#btnAtualizar').onclick=()=>consultar(false);
+    qs('#btnMesAnterior').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,-1);consultar(false)};
+    qs('#btnMesSeguinte').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,+1);consultar(false)};
+
+    async function carregarContas(){
+      try{
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/contas?select=id,nome&order=nome.asc`,{headers:await hdr()});
+        if(!r.ok)throw new Error(await r.text());
+        const data=await r.json();
+        $conta.innerHTML = data.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
+      }catch(e){$out.innerHTML='<div class="muted">Erro ao carregar contas.</div>'}
+    }
+    carregarContas();
+
+    async function consultar(keepExpanded=false){
+      try{
+        const conta=$conta.value,ym=$mesRef.value;
+        if(!conta||!ym){$out.innerHTML='<div class="muted">Selecione a conta e mês.</div>';return}
+        const ref=ym+'-01';
+        const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`,{
+          method:'POST',headers:await hdr(),
+          body:JSON.stringify({ conta_nome:conta, referencia: ref })
+        });
+        if(!r.ok) throw new Error(await r.text());
+        const rows = await r.json();
+        if(!keepExpanded) expandedDays.clear();
+        renderTabela(rows);
+      }catch(e){$out.innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
     }
 
-    document.getElementById('btnLoginGoogle').onclick = loginGoogle;
+    function catNameById(id){ return categoriasCache.find(c=>c.id===id)?.nome || ''; }
+
+    function linhaDia(r){
+      const diaISO = r.dia;
+      const dayNum = onlyDay(diaISO);
+      const txs = Array.isArray(r.transacoes)? r.transacoes : [];
+      const isOpen = expandedDays.has(diaISO);
+      const cnt = txs.length;
+      const saldoClass = Number(r.saldo)>=0?'saldo-pos':'saldo-neg';
+
+      const dateClass = (diaISO < todayISO) ? 'past' : (diaISO === todayISO ? 'today' : '');
+      const todayPol = (diaISO === todayISO) ? (Number(r.saldo)>=0?'pos':'neg') : '';
+
+      const toggleBtn = cnt
+        ? `<button class="btn-link toggle" data-dia="${diaISO}" data-count="${cnt}">${isOpen ? 'Fechar' : 'Abrir'} ${cnt} transação(ões)</button>`
+        : `<span class="muted">–</span>`;
+
+      const linha = `<tr class="row-dia ${dateClass} ${Number(r.saldo)<0?'row-neg':''}">
+        <td class="col-dia"><span class="daynum ${todayPol}">${dayNum}</span></td>
+        <td>${toggleBtn}</td>
+        <td class="col-saldo saldo ${saldoClass}">${money(r.saldo)}</td>
+      </tr>`;
+
+      const exp = (isOpen && cnt) ? `<tr class="expander"><td colspan="3">${expCard(txs, diaISO)}</td></tr>` : '';
+      return linha+exp;
+    }
+
+    function expCard(txs,dia){
+      const items=txs.map(t=>{
+        const categoria = t.categoria_id ? ` <span class="pill">${catNameById(t.categoria_id)}</span>` : '';
+        const select =
+`<select class="tx-status"
+  data-virtual="${!!t.virtual}"
+  data-id="${t.id||''}"
+  data-recorrencia-id="${t.recorrencia_id||''}"
+  data-conta-id="${t.conta_id||''}"
+  data-data="${t.data||dia}"
+  data-descricao="${(t.descricao||'').replace(/\"/g,'&quot;')}"
+  data-tipo="${t.tipo}"
+  data-valor="${t.valor}"
+  data-status="${t.status||'cadastrada'}">
+  <option value="cadastrada" ${(t.virtual||t.status==='cadastrada')?'selected':''}>Cadastrada</option>
+  <option value="agendada" ${t.status==='agendada'?'selected':''}>Agendada</option>
+  <option value="efetivada" ${t.status==='efetivada'?'selected':''}>Efetivada</option>
+</select>`;
+        const editBtn = t.virtual
+          ? `<button class="tx-mat-edit btn-link"
+               data-virtual="true" data-recorrencia-id="${t.recorrencia_id||''}" data-conta-id="${t.conta_id||''}"
+               data-data="${t.data||dia}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
+               data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}">Editar</button>`
+          : `<button class="tx-edit btn-link"
+               data-virtual="false" data-id="${t.id}"
+               data-data="${t.data}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
+               data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}" data-categoria-id="${t.categoria_id||''}">Editar</button>`;
+        const delBtn = t.virtual
+          ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}">Excluir recorrência</button>`
+          : `<button class="tx-del btn-danger" data-id="${t.id}" data-status="${t.status||'cadastrada'}">Excluir</button>`;
+        return `<li><span class="pill">${t.tipo}</span> <strong>${t.descricao}</strong> — ${money(t.valor)} ${categoria} ${t.virtual?'<span class="pill">virtual</span>':''}
+          <span style="margin-left:8px;display:inline-flex;gap:8px;">${select}${editBtn}${delBtn}</span></li>`;
+      }).join('');
+      return `<div class="expand-card"><ul class="tx-list">${items}</ul></div>`
+    }
+
+    qsa('.toggle')?.forEach(b=>b.addEventListener('click',toggleExp)); // no-op at start
+    function toggleExp(e){
+      const b=e.currentTarget; const dia=b.dataset.dia;
+      if(expandedDays.has(dia)) expandedDays.delete(dia); else expandedDays.add(dia);
+      if (window._lastRows) renderTabela(window._lastRows); else consultar(true);
+    }
+
+    // Status -> materializa virtual; atualiza materializada
+    async function onChangeStatus(e){
+      const s=e.currentTarget, v=s.value;
+      try{
+        if (s.dataset.virtual === 'true'){
+          const body = {
+            conta_id: s.dataset.contaId,
+            descricao: s.dataset.descricao,
+            tipo: s.dataset.tipo,
+            valor: Number(s.dataset.valor),
+            data: s.dataset.data,
+            status: v,
+            recorrencia_id: s.dataset.recorrenciaId || null
+          };
+          await api('POST','/rest/v1/transacoes', body);
+        } else {
+          await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v });
+        }
+        consultar(true);
+      } catch(err){ alert('Erro ao alterar status: '+err.message); }
+    }
+
+    function onDeleteTx(e){
+      const id=e.currentTarget.dataset.id;
+      const st=e.currentTarget.dataset.status;
+      if (st==='efetivada'){ alert('Transações efetivadas não podem ser excluídas. Desbloqueie alterando o status para "cadastrada" primeiro.'); return; }
+      if(!confirm('Excluir transação?'))return;
+      api('DELETE',`/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`)
+        .then(()=>consultar(true)).catch(err=>alert(err.message));
+    }
+    function onDeleteRec(e){
+      const id=e.currentTarget.dataset.recorrenciaId;
+      if(!confirm('Excluir a RECORRÊNCIA inteira? Esta ação remove previsões futuras desta série.'))return;
+      api('DELETE',`/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`)
+        .then(()=>consultar(true)).catch(err=>alert(err.message));
+    }
+
+    function renderTabela(rows){
+      window._lastRows = rows;
+      if(!rows?.length){$out.innerHTML='<div class="muted">Sem dados para o período.</div>';return}
+      const html = `
+        <table>
+          <thead><tr><th class="col-dia">Dia</th><th>Transações do dia</th><th class="col-saldo">Saldo</th></tr></thead>
+          <tbody>${rows.map(linhaDia).join('')}</tbody>
+        </table>`;
+      $out.innerHTML = html;
+
+      qsa('.toggle').forEach(b=>b.addEventListener('click',toggleExp));
+      qsa('.tx-status').forEach(s=>s.addEventListener('change',onChangeStatus));
+      qsa('.tx-del').forEach(b=>b.addEventListener('click',onDeleteTx));
+      qsa('.tx-del-rec').forEach(b=>b.addEventListener('click',onDeleteRec));
+      qsa('.tx-edit').forEach(b=>b.addEventListener('click',onEditTx));
+      qsa('.tx-mat-edit').forEach(b=>b.addEventListener('click',onMatEdit));
+    }
+
+    // ---------- Editar / Materializar & editar ----------
+    const $modal=qs('#modal-backdrop');
+    const f_mode=qs('#f_mode'),f_edit_id=qs('#f_edit_id'),f_edit_virtual=qs('#f_edit_virtual'),f_edit_recorrencia_id=qs('#f_edit_recorrencia_id');
+    const f_kind=qs('#f_kind'),f_desc=qs('#f_descricao'),f_tipo=qs('#f_tipo'),f_valor=qs('#f_valor'),f_data=qs('#f_data'),grpPar=qs('#grpParcelas'),f_qtd=qs('#f_qtd'),grpPer=qs('#grpPeriodo'),f_periodicidade=qs('#f_periodicidade'),f_status=qs('#f_status');
+    const f_categoria=qs('#f_categoria'), grpScope=qs('#grpScope'), f_scope=qs('#f_scope');
+
+    function populateCategoriasSelect(){
+      f_categoria.innerHTML = `<option value="">(sem categoria)</option>` + categoriasCache.map(c=>`<option value="${c.id}">${c.nome} (${c.tipo})</option>`).join('');
+    }
+
+    function openModal(){
+      f_mode.value='create';f_edit_id.value='';f_edit_virtual.value='false';f_edit_recorrencia_id.value='';
+      qs('#modalTitle').textContent='Nova Transação';
+      grpPar.style.display='none';grpPer.style.display='none';grpScope.style.display='none';f_kind.value='unica';
+      f_desc.value='';f_tipo.value='debito';f_valor.value='';f_data.value=new Date().toISOString().slice(0,10);f_status.value='cadastrada';
+      populateCategoriasSelect(); f_categoria.value='';
+      $modal.classList.add('open');$modal.style.display='flex';
+    }
+    function openEditModal({id,virtual,data,descricao,tipo,valor,status,recorrencia_id,categoria_id}){
+      f_mode.value='edit';f_edit_id.value=id||'';f_edit_virtual.value=String(!!virtual);f_edit_recorrencia_id.value = recorrencia_id || '';
+      qs('#modalTitle').textContent=virtual?'Editar (recorrência)':'Editar transação';
+      grpPar.style.display='none';grpPer.style.display='none';f_kind.value='unica';
+      f_desc.value=descricao||'';f_tipo.value=tipo||'debito';f_valor.value=valor||'';f_data.value=data||new Date().toISOString().slice(0,10);f_status.value=status||'cadastrada';
+      populateCategoriasSelect(); f_categoria.value=categoria_id||'';
+      grpScope.style.display = virtual ? 'block' : 'none';
+      $modal.classList.add('open');$modal.style.display='flex';
+    }
+    function closeModal(){ $modal.classList.remove('open');$modal.style.display='none' }
+
+    qs('#btnNova').onclick=openModal;
+    qs('#m_cancel').onclick=closeModal;
+    document.addEventListener('keydown',(ev)=>{if(ev.key==='Escape'&&$modal.classList.contains('open'))closeModal()})
+    f_kind.addEventListener('change',()=>{grpPar.style.display=(f_kind.value==='parcelada')?'block':'none';grpPer.style.display=(f_kind.value==='recorrente')?'block':'none'})
+
+    function onEditTx(e){
+      const b=e.currentTarget;
+      if (b.dataset.status==='efetivada'){ alert('Transações efetivadas não podem ser editadas. Desbloqueie alterando o status para "cadastrada" primeiro.'); return; }
+      openEditModal({
+        id:b.dataset.id, virtual:false, data:b.dataset.data,
+        descricao:b.dataset.descricao, tipo:b.dataset.tipo, valor:b.dataset.valor, status:b.dataset.status, categoria_id:b.dataset.categoriaId||''
+      });
+    }
+    function onMatEdit(e){
+      const b=e.currentTarget;
+      openEditModal({
+        id:null, virtual:true, recorrencia_id:b.dataset.recorrenciaId||null, conta_id:b.dataset.contaId,
+        data:b.dataset.data, descricao:b.dataset.descricao, tipo:b.dataset.tipo, valor:b.dataset.valor, status:b.dataset.status
+      });
+    }
+
+    async function getContaIdByNome(n){
+      const r=await api('GET',`/rest/v1/contas?select=id&nome=eq.${encodeURIComponent(n)}`);return Array.isArray(r)&&r[0]?.id;
+    }
+
+    async function salvarCreateOrEdit(){
+      try{
+        const contaNome=qs('#conta').value; const conta_id=await getContaIdByNome(contaNome); if(!conta_id) throw new Error('Conta não encontrada');
+        const base={
+          conta_id,
+          descricao:(f_desc.value||'').trim(),
+          tipo:f_tipo.value,
+          valor:Number(f_valor.value||0),
+          data:f_data.value,
+          status:f_status.value,
+          categoria_id: f_categoria.value || null
+        };
+        if(!base.descricao) throw new Error('Descrição é obrigatória');
+        if(!base.valor||base.valor<=0) throw new Error('Informe um valor > 0');
+        if(!base.data) throw new Error('Informe a data');
+
+        if (f_mode.value==='create'){
+          if (f_kind.value==='unica'){
+            await api('POST','/rest/v1/transacoes', base);
+          } else if (f_kind.value==='parcelada'){
+            const n=parseInt(f_qtd.value,10); if(!n||n<2) throw new Error('Qtd de parcelas (>=2)');
+            const [y,m,d]=base.data.split('-').map(Number); const arr=[];
+            for(let i=1;i<=n;i++){
+              const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCMonth(dt.getUTCMonth()+i-1);
+              arr.push({conta_id,descricao:`${base.descricao} (${i}/${n})`,tipo:base.tipo,valor:base.valor,data:dt.toISOString().slice(0,10),status:base.status, categoria_id:base.categoria_id});
+            }
+            await api('POST','/rest/v1/transacoes', arr);
+          } else {
+            await api('POST','/rest/v1/recorrencias', {conta_id,descricao:base.descricao,tipo:base.tipo,valor:base.valor,inicio:base.data,fim:null,periodicidade:'mensal'});
+          }
+        } else {
+          const isVirtual = f_edit_virtual.value==='true';
+          if (isVirtual){
+            const scope = f_scope.value;
+            const recId = f_edit_recorrencia_id.value;
+            if (!recId) throw new Error('recorrencia_id ausente');
+
+            if (scope==='occurrence'){
+              // materializa esta ocorrência apenas
+              await api('POST','/rest/v1/transacoes', { ...base, recorrencia_id: recId });
+            } else if (scope==='series'){
+              // altera a série inteira (aplica nos próximos meses previstos)
+              await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, {
+                descricao: base.descricao, tipo: base.tipo, valor: base.valor
+              });
+            } else if (scope==='from_now'){
+              // encerra a recorrência atual no dia anterior e cria nova a partir da data editada
+              const d=new Date(base.data); d.setDate(d.getDate()-1);
+              const fim = d.toISOString().slice(0,10);
+              await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { fim });
+              await api('POST','/rest/v1/recorrencias',{
+                conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor, inicio: base.data, fim: null, periodicidade:'mensal'
+              });
+            }
+          } else {
+            await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(f_edit_id.value)}`, base);
+          }
+        }
+        closeModal(); consultar(true);
+      }catch(err){ alert('Erro ao salvar: '+err.message); }
+    }
+    qs('#m_save').onclick = salvarCreateOrEdit;
+
+    // ---------- CONTAS ----------
+    async function listarContas(){
+      try{
+        const r=await api('GET','/rest/v1/contas?select=id,nome,saldo_inicial&order=nome.asc');
+        const el=qs('#contasLista');
+        if(!Array.isArray(r)||!r.length){el.innerHTML='<div class="muted">Nenhuma conta.</div>';return}
+        el.innerHTML=r.map(c=>`<div class="row"><span class="pill">${c.nome}</span><span class="muted">Saldo inicial: ${money(c.saldo_inicial)}</span></div>`).join('');
+      }catch(e){qs('#contasLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
+    }
+    qs('#btnCriarConta').onclick=async()=>{
+      try{
+        const nome=(qs('#c_nome').value||'').trim();const saldo=Number(qs('#c_saldo').value||0);
+        if(!nome)return alert('Informe o nome.');
+        await api('POST','/rest/v1/contas',{nome,saldo_inicial:saldo});
+        qs('#c_nome').value='';qs('#c_saldo').value='0';listarContas();
+      }catch(e){alert(e.message)}
+    }
+
+    // ---------- CATEGORIAS ----------
+    async function listarCategorias(){
+      try{
+        const r=await api('GET','/rest/v1/categorias?select=id,nome,tipo,descricao&order=nome.asc');
+        const el=qs('#catsLista');
+        categoriasCache = Array.isArray(r)? r : [];
+        if(!Array.isArray(r)||!r.length){el.innerHTML='<div class="muted">Nenhuma categoria.</div>';return}
+        el.innerHTML=r.map(c=>`<div class="row"><span class="pill">${c.nome}</span><span class="pill">${c.tipo}</span><span class="muted">${c.descricao||''}</span></div>`).join('');
+      }catch(e){qs('#catsLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
+    }
+    qs('#btnCriarCategoria').onclick=async()=>{
+      try{
+        const nome=(qs('#cat_nome').value||'').trim();
+        if(!nome)return alert('Informe o nome.');
+        await api('POST','/rest/v1/categorias',{nome,tipo:qs('#cat_tipo').value,descricao:(qs('#cat_desc').value||'').trim()});
+        qs('#cat_nome').value='';qs('#cat_desc').value='';listarCategorias();
+      }catch(e){alert(e.message)}
+    }
+
+    // ---------- Importação ----------
+    function parseCsv(t){
+      const lines=t.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+      if(!lines.length) return [];
+      const headers=lines.shift().split(',').map(h=>h.trim());
+      return lines.map(line=>{
+        const cols=line.split(',');
+        const o={}; headers.forEach((h,i)=>o[h]=(cols[i]||'').trim());
+        return o;
+      });
+    }
+    qs('#btnImportarCsv').onclick=async()=>{
+      try{
+        const tipo=qs('#imp_tipo').value; const file=qs('#imp_file').files[0];
+        if(!file) return alert('Selecione um CSV.');
+        const text=await file.text(), data=parseCsv(text);
+        if(!data.length) return alert('CSV vazio.');
+        await api('POST','/rest/v1/'+(tipo==='categorias'?'categorias':tipo==='transacoes'?'transacoes':'recorrencias'),data);
+        qs('#imp_msg').innerHTML=`<span class="pill">OK</span> ${data.length} registros importados em <strong>${tipo}</strong>.`;
+      }catch(e){qs('#imp_msg').innerHTML=`<span class="pill">ERRO</span> ${e.message}`}
+    };
+
+    // Inicial render se já estiver na aba de saldos
+    if (location.hash.replace(/^#\/?/,'') === 'saldos' && currentSession) consultar();
   </script>
 </body>
 </html>

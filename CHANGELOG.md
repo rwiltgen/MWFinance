@@ -3,6 +3,17 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+
+## [1.4.18] — 2025-10-19
+### Fixed
+- **Autenticação:** restaura gate de sessão e `onAuthStateChange`, impedindo retorno automático à tela de login após autenticar.
+- **UI completa:** reintroduz cabeçalho, navegação e telas (Saldos, Contas, Categorias, Importar) que faltaram na 1.4.17.
+- **Login Google:** mantém redirecionamento dinâmico (preview permanece no preview; produção permanece na produção).
+
+> Esta versão substitui a 1.4.17 no ambiente de testes.
+
+---
+
 ## [1.4.17] — 2025-10-18
 ### Fixed
 - **Login Google (OAuth):** redirecionamento agora é dinâmico:
