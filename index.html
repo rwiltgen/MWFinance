@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.20</title>
+  <title>MWFinance — v1.4.21</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -64,7 +64,7 @@
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.20</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.21</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -282,20 +282,43 @@
     const todayISO = new Date().toISOString().slice(0,10);
     function onlyDay(diaISO){ return String(Number((diaISO||'').slice(8,10)||'0')); }
 
+    function mergeHeaders(base) {
+      // Garante 'Prefer: return=representation' pra evitar corpo vazio (201/204) e facilitar parse
+      return { ...base, Prefer: (base.Prefer ? base.Prefer + ', ' : '') + 'return=representation' };
+    }
+
     async function hdr(){
       const { data:{ session } } = await supabase.auth.getSession();
       if(!session) throw new Error('Sem sessão');
-      return {
+      return mergeHeaders({
         apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${session.access_token}`,
         'Content-Type': 'application/json'
-      };
+      });
     }
+
     async function api(method, path, body){
-      const r = await fetch(`${SUPABASE_URL}${path}`, { method, headers: await hdr(), body: body? JSON.stringify(body): undefined });
-      if(!r.ok){ const t = await r.text(); throw new Error(t||r.status); }
-      return r.status===204 ? true : r.json();
+      const res = await fetch(`${SUPABASE_URL}${path}`, {
+        method,
+        headers: await hdr(),
+        body: body ? JSON.stringify(body) : undefined
+      });
+      if(!res.ok){
+        // Tenta extrair texto/JSON de erro
+        let errTxt = '';
+        try{ errTxt = await res.text(); } catch {}
+        throw new Error(errTxt || `${res.status}`);
+      }
+      // Resposta pode ser vazia (204/201 sem body). Trate com segurança.
+      const ct = res.headers.get('content-type') || '';
+      const clen = res.headers.get('content-length');
+      if (!ct.includes('application/json')) return true;
+      if (clen === '0') return true;
+      const txt = await res.text();
+      if (!txt) return true;
+      try { return JSON.parse(txt); } catch { return true; }
     }
+
     function show(view){
       Object.entries(sections).forEach(([k,el])=>el.style.display=(k===view)?'block':'none');
       Object.entries(nav).forEach(([k,a])=>a.classList.toggle('active',k===view));
@@ -318,10 +341,7 @@
       $auth.style.display=logged?'none':'block';
       $ubar.style.display=logged?'block':'none';
       $uinfo.textContent=logged?(s.user.email||'Usuário'):'—';
-
-      if (logged){
-        initAfterLogin(); // novo: carrega contas e consulta automaticamente
-      }
+      if (logged) initAfterLogin();
     }
     function showMsg(kind, text){
       if(!text){ $authMsg.textContent=''; $authMsg.className='hint'; return; }
@@ -373,17 +393,13 @@
       const{data:{session}}=await supabase.auth.getSession();
       setSession(session);
       if(!location.hash) location.hash='#/saldos';
-      // se já estava logado, também inicializa
       if(session) initAfterLogin();
     })();
 
     async function initAfterLogin(){
       try{
-        // mês atual
         qs('#mesRef').value = new Date().toISOString().slice(0,7);
-        // contas
         await carregarContas();
-        // se houver pelo menos uma conta, seleciona e consulta
         const first = qs('#conta').querySelector('option');
         if(first) qs('#conta').value = first.value;
         await consultar(false);
@@ -539,13 +555,12 @@
             recorrencia_id: s.dataset.recorrenciaId || null
           };
           if (HAS_CATID_IN_TRANS && s.dataset.categoriaId) body.categoria_id = s.dataset.categoriaId;
-          await api('POST','/rest/v1/transacoes', body);
+          await tryPost('/rest/v1/transacoes', body);
         } else {
-          await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v, user_id: currentUserId });
+          await tryPatch(`/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v, user_id: currentUserId });
         }
         consultar(true);
       } catch(err){
-        if(String(err.message).includes("Could not find the 'categoria_id'")){ HAS_CATID_IN_TRANS=false; onChangeStatus(e); return; }
         alert('Erro ao alterar status: '+err.message);
       }
     }
@@ -610,6 +625,21 @@
     document.addEventListener('keydown',(ev)=>{if(ev.key==='Escape'&&$modal.classList.contains('open'))closeModal()})
     f_kind.addEventListener('change',()=>{grpPar.style.display=(f_kind.value==='parcelada')?'block':'none';grpPer.style.display=(f_kind.value==='recorrente')?'block':'none'})
 
+    function buildTransacaoBase(conta_id){
+      const base={
+        user_id: currentUserId,
+        conta_id,
+        descricao:(f_desc.value||'').trim(),
+        tipo:f_tipo.value,
+        valor:Number(f_valor.value||0),
+        data:f_data.value,
+        status:f_status.value
+      };
+      const cat = (f_categoria.value||'').trim();
+      if (HAS_CATID_IN_TRANS && cat) base.categoria_id = cat;
+      return base;
+    }
+
     function onEditTx(e){
       const b=e.currentTarget;
       if (b.dataset.status==='efetivada'){ alert('Transações efetivadas não podem ser editadas. Desbloqueie alterando o status para "cadastrada" primeiro.'); return; }
@@ -628,21 +658,6 @@
 
     async function getContaIdByNome(n){
       const r=await api('GET',`/rest/v1/contas?select=id&nome=eq.${encodeURIComponent(n)}`);return Array.isArray(r)&&r[0]?.id;
-    }
-
-    function buildTransacaoBase(conta_id){
-      const base={
-        user_id: currentUserId,
-        conta_id,
-        descricao:(f_desc.value||'').trim(),
-        tipo:f_tipo.value,
-        valor:Number(f_valor.value||0),
-        data:f_data.value,
-        status:f_status.value
-      };
-      const cat = (f_categoria.value||'').trim();
-      if (HAS_CATID_IN_TRANS && cat) base.categoria_id = cat;
-      return base;
     }
 
     async function salvarCreateOrEdit(){
@@ -704,9 +719,9 @@
       try{
         return await api('POST', path, body);
       }catch(err){
-        if(String(err.message).includes("Could not find the 'categoria_id'")){
+        const msg = String(err.message||'');
+        if(msg.includes("Could not find the 'categoria_id'")){
           HAS_CATID_IN_TRANS=false;
-          // remove categoria_id e tenta de novo
           const scrub = (obj)=>{ const c=JSON.parse(JSON.stringify(obj)); if(Array.isArray(c)) c.forEach(o=>delete o.categoria_id); else delete c.categoria_id; return c; };
           return await api('POST', path, scrub(body));
         }
@@ -717,7 +732,8 @@
       try{
         return await api('PATCH', path, body);
       }catch(err){
-        if(String(err.message).includes("Could not find the 'categoria_id'")){
+        const msg = String(err.message||'');
+        if(msg.includes("Could not find the 'categoria_id'")){
           HAS_CATID_IN_TRANS=false;
           const scrub = (obj)=>{ const c={...obj}; delete c.categoria_id; return c; };
           return await api('PATCH', path, scrub(body));
@@ -780,10 +796,8 @@
         if(!file) return alert('Selecione um CSV.');
         const text=await file.text(), data=parseCsv(text);
         if(!data.length) return alert('CSV vazio.');
-        // injeta user_id em massa
         const payload = data.map(x=>({ ...x, user_id: currentUserId }));
         const table = tipo==='categorias'?'categorias':(tipo==='transacoes'?'transacoes':'recorrencias');
-        // se for transações e não existir categoria_id, remove
         if(table==='transacoes' && !HAS_CATID_IN_TRANS){ payload.forEach(o=>delete o.categoria_id); }
         await api('POST','/rest/v1/'+table, payload);
         qs('#imp_msg').innerHTML=`<span class="pill">OK</span> ${payload.length} registros importados em <strong>${table}</strong>.`;

@@ -3,6 +3,14 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.21] — 2025-10-19
+### Fixed
+- **PostgREST 201/204 sem corpo:** cliente agora trata respostas vazias com segurança (evita “Unexpected end of JSON input”).
+- **`categoria_id` opcional:** detecção automática quando a coluna não existe no schema; reenviamos a operação sem `categoria_id`.
+- **CRUD com RLS:** mantido envio explícito de `user_id = auth.uid()` em todas as criações/edições para passar pelas políticas `WITH CHECK`.
+
+---
+
 ## [1.4.20] — 2025-10-19
 ### Fixed
 - **Auto-refresh pós-login:** carrega contas e executa `consultar()` automaticamente após autenticar.
