@@ -3,6 +3,15 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.20] — 2025-10-19
+### Fixed
+- **Auto-refresh pós-login:** carrega contas e executa `consultar()` automaticamente após autenticar.
+- **Expansão/colapso:** botão mostra setas ▼/▲ em vez de “Abrir/Fechar”.
+- **Salvar sem categoria:** não envia `categoria_id` quando vazio; se o schema não tiver a coluna, detecta o erro e opera sem categorias nas transações, reenviando a operação sem falhar.
+- **RLS (categorias/CRUD):** agora enviamos `user_id = session.user.id` nas criações/edições de `contas`, `categorias`, `transacoes` e `recorrencias`, satisfazendo políticas `WITH CHECK (auth.uid() = user_id)` mesmo sem trigger.
+
+---
+
 ## [1.4.19] — 2025-10-19
 ### Fixed
 - **Login Google (OAuth):** adiciona `state` com a URL atual e lógica de retorno automático.

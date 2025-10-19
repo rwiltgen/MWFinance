@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.19</title>
+  <title>MWFinance — v1.4.20</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -58,12 +58,13 @@
     .row-dia.today .daynum.pos{color:var(--good)}
     .row-dia.today .daynum.neg{color:var(--neg)}
     .row-dia.row-neg{border-left:3px solid var(--neg)}
+    .caret{display:inline-block;transform:translateY(-1px)}
   </style>
 </head>
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.19</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.20</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -269,6 +270,9 @@
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
 
+    // ---------- Feature flags ----------
+    let HAS_CATID_IN_TRANS = true; // desliga automaticamente se detectar ausência da coluna
+
     // ---------- Helpers ----------
     const qs = (s)=>document.querySelector(s);
     const qsa = (s)=>Array.from(document.querySelectorAll(s));
@@ -277,23 +281,6 @@
     const sections = { saldos:qs('#view-saldos'), contas:qs('#view-contas'), categorias:qs('#view-categorias'), importar:qs('#view-importar') };
     const todayISO = new Date().toISOString().slice(0,10);
     function onlyDay(diaISO){ return String(Number((diaISO||'').slice(8,10)||'0')); }
-
-    function getParamFromUrl(name){
-      const url = new URL(window.location.href);
-      const hash = new URLSearchParams(url.hash.slice(1));
-      return url.searchParams.get(name) || hash.get(name);
-    }
-    function safePreviewUrl(u){
-      try{
-        const x = new URL(u);
-        const host = x.hostname;
-        // permita apenas domínios de preview comuns e localhost
-        if (host.startsWith('mwfinance-git-') && host.endsWith('.vercel.app')) return x.href;
-        if (host === 'localhost' || host === '127.0.0.1') return x.href;
-        if (host === 'preview.mwfinance.app') return x.href; // caso futuro
-        return null;
-      }catch{ return null; }
-    }
 
     async function hdr(){
       const { data:{ session } } = await supabase.auth.getSession();
@@ -320,10 +307,12 @@
 
     // ---------- Sessão/Auth ----------
     let currentSession=null;
+    let currentUserId=null;
     const $auth=qs('#authView'),$ubar=qs('#userBar'),$uinfo=qs('#userInfo'),$logout=qs('#btnLogout'),$authMsg=qs('#authMsg');
 
     function setSession(s){
       currentSession=s;
+      currentUserId=s?.user?.id||null;
       const logged=!!s;
       document.body.classList.toggle('logged', logged);
       $auth.style.display=logged?'none':'block';
@@ -331,16 +320,7 @@
       $uinfo.textContent=logged?(s.user.email||'Usuário'):'—';
 
       if (logged){
-        // Se chegou na produção com "state" apontando para preview, volte ao preview automaticamente.
-        const st = getParamFromUrl('state');
-        const backUrl = safePreviewUrl(st);
-        if (backUrl && location.hostname === 'mwfinance.vercel.app'){
-          // mantém rota padrão ao voltar
-          location.replace(backUrl.replace(/[#?].*$/,'') + '#/saldos');
-          return;
-        }
-        const target = (location.hash.replace(/^#\/?/,'')||'saldos');
-        show(target);
+        initAfterLogin(); // novo: carrega contas e consulta automaticamente
       }
     }
     function showMsg(kind, text){
@@ -372,17 +352,12 @@
       }catch(e){ showMsg('error','Erro: '+e.message) }
     };
 
-    // Redirecionamento dinâmico + "state" para voltar ao preview se cair na produção
     const hostname = window.location.hostname;
     const isProd = hostname === 'mwfinance.vercel.app';
     const redirectTo = isProd ? 'https://mwfinance.vercel.app' : window.location.origin;
-    const state = encodeURIComponent(window.location.origin + window.location.pathname + window.location.hash);
 
     qs('#btnLoginGoogle').onclick=async()=>{
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider:'google',
-        options:{ redirectTo, queryParams: { state } }
-      });
+      const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{redirectTo} });
       if(error) showMsg('error', error.message);
     };
 
@@ -390,12 +365,32 @@
 
     supabase.auth.onAuthStateChange((_e,s)=>{
       setSession(s);
-      // remove tokens e params da URL após o retorno do Supabase
       if(s && (location.href.includes('access_token') || location.search)){
         history.replaceState(null, '', location.origin + location.pathname + '#/saldos');
       }
     });
-    (async()=>{const{data:{session}}=await supabase.auth.getSession(); setSession(session); if(session&&!location.hash)navigate('saldos')})();
+    (async()=>{
+      const{data:{session}}=await supabase.auth.getSession();
+      setSession(session);
+      if(!location.hash) location.hash='#/saldos';
+      // se já estava logado, também inicializa
+      if(session) initAfterLogin();
+    })();
+
+    async function initAfterLogin(){
+      try{
+        // mês atual
+        qs('#mesRef').value = new Date().toISOString().slice(0,7);
+        // contas
+        await carregarContas();
+        // se houver pelo menos uma conta, seleciona e consulta
+        const first = qs('#conta').querySelector('option');
+        if(first) qs('#conta').value = first.value;
+        await consultar(false);
+      }catch(e){
+        console.warn('initAfterLogin:', e.message);
+      }
+    }
 
     // ---------- Navegação ----------
     window.addEventListener('hashchange',()=>{ if(currentSession) show(location.hash.replace(/^#\/?/,'')||'saldos') });
@@ -428,14 +423,11 @@
     qs('#btnMesSeguinte').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,+1);consultar(false)};
 
     async function carregarContas(){
-      try{
-        const r=await fetch(`${SUPABASE_URL}/rest/v1/contas?select=id,nome&order=nome.asc`,{headers:await hdr()});
-        if(!r.ok)throw new Error(await r.text());
-        const data=await r.json();
-        $conta.innerHTML = data.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
-      }catch(e){$out.innerHTML='<div class="muted">Erro ao carregar contas.</div>'}
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/contas?select=id,nome&order=nome.asc`,{headers:await hdr()});
+      if(!r.ok)throw new Error(await r.text());
+      const data=await r.json();
+      $conta.innerHTML = data.map(c=>`<option value="${c.nome}">${c.nome}</option>`).join('');
     }
-    carregarContas();
 
     async function consultar(keepExpanded=false){
       try{
@@ -466,8 +458,9 @@
       const dateClass = (diaISO < todayISO) ? 'past' : (diaISO === todayISO ? 'today' : '');
       const todayPol = (diaISO === todayISO) ? (Number(r.saldo)>=0?'pos':'neg') : '';
 
+      const caret = isOpen ? '▲' : '▼';
       const toggleBtn = cnt
-        ? `<button class="btn-link toggle" data-dia="${diaISO}" data-count="${cnt}">${isOpen ? 'Fechar' : 'Abrir'} ${cnt} transação(ões)</button>`
+        ? `<button class="btn-link toggle" data-dia="${diaISO}" data-count="${cnt}"><span class="caret">${caret}</span> ${cnt} transação(ões)</button>`
         : `<span class="muted">–</span>`;
 
       const linha = `<tr class="row-dia ${dateClass} ${Number(r.saldo)<0?'row-neg':''}">
@@ -482,7 +475,7 @@
 
     function expCard(txs,dia){
       const items=txs.map(t=>{
-        const categoria = t.categoria_id ? ` <span class="pill">${catNameById(t.categoria_id)}</span>` : '';
+        const categoria = (HAS_CATID_IN_TRANS && t.categoria_id) ? ` <span class="pill">${catNameById(t.categoria_id)}</span>` : '';
         const select =
 `<select class="tx-status"
   data-virtual="${!!t.virtual}"
@@ -516,6 +509,15 @@
       return `<div class="expand-card"><ul class="tx-list">${items}</ul></div>`
     }
 
+    function rebindRows(){
+      qsa('.toggle').forEach(b=>b.addEventListener('click',toggleExp));
+      qsa('.tx-status').forEach(s=>s.addEventListener('change',onChangeStatus));
+      qsa('.tx-del').forEach(b=>b.addEventListener('click',onDeleteTx));
+      qsa('.tx-del-rec').forEach(b=>b.addEventListener('click',onDeleteRec));
+      qsa('.tx-edit').forEach(b=>b.addEventListener('click',onEditTx));
+      qsa('.tx-mat-edit').forEach(b=>b.addEventListener('click',onMatEdit));
+    }
+
     function toggleExp(e){
       const b=e.currentTarget; const dia=b.dataset.dia;
       if(expandedDays.has(dia)) expandedDays.delete(dia); else expandedDays.add(dia);
@@ -527,6 +529,7 @@
       try{
         if (s.dataset.virtual === 'true'){
           const body = {
+            user_id: currentUserId,
             conta_id: s.dataset.contaId,
             descricao: s.dataset.descricao,
             tipo: s.dataset.tipo,
@@ -535,12 +538,16 @@
             status: v,
             recorrencia_id: s.dataset.recorrenciaId || null
           };
+          if (HAS_CATID_IN_TRANS && s.dataset.categoriaId) body.categoria_id = s.dataset.categoriaId;
           await api('POST','/rest/v1/transacoes', body);
         } else {
-          await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v });
+          await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v, user_id: currentUserId });
         }
         consultar(true);
-      } catch(err){ alert('Erro ao alterar status: '+err.message); }
+      } catch(err){
+        if(String(err.message).includes("Could not find the 'categoria_id'")){ HAS_CATID_IN_TRANS=false; onChangeStatus(e); return; }
+        alert('Erro ao alterar status: '+err.message);
+      }
     }
 
     function onDeleteTx(e){
@@ -567,13 +574,7 @@
           <tbody>${rows.map(linhaDia).join('')}</tbody>
         </table>`;
       $out.innerHTML = html;
-
-      qsa('.toggle').forEach(b=>b.addEventListener('click',toggleExp));
-      qsa('.tx-status').forEach(s=>s.addEventListener('change',onChangeStatus));
-      qsa('.tx-del').forEach(b=>b.addEventListener('click',onDeleteTx));
-      qsa('.tx-del-rec').forEach(b=>b.addEventListener('click',onDeleteRec));
-      qsa('.tx-edit').forEach(b=>b.addEventListener('click',onEditTx));
-      qsa('.tx-mat-edit').forEach(b=>b.addEventListener('click',onMatEdit));
+      rebindRows();
     }
 
     const $modal=qs('#modal-backdrop');
@@ -629,35 +630,45 @@
       const r=await api('GET',`/rest/v1/contas?select=id&nome=eq.${encodeURIComponent(n)}`);return Array.isArray(r)&&r[0]?.id;
     }
 
+    function buildTransacaoBase(conta_id){
+      const base={
+        user_id: currentUserId,
+        conta_id,
+        descricao:(f_desc.value||'').trim(),
+        tipo:f_tipo.value,
+        valor:Number(f_valor.value||0),
+        data:f_data.value,
+        status:f_status.value
+      };
+      const cat = (f_categoria.value||'').trim();
+      if (HAS_CATID_IN_TRANS && cat) base.categoria_id = cat;
+      return base;
+    }
+
     async function salvarCreateOrEdit(){
       try{
         const contaNome=qs('#conta').value; const conta_id=await getContaIdByNome(contaNome); if(!conta_id) throw new Error('Conta não encontrada');
-        const base={
-          conta_id,
-          descricao:(f_desc.value||'').trim(),
-          tipo:f_tipo.value,
-          valor:Number(f_valor.value||0),
-          data:f_data.value,
-          status:f_status.value,
-          categoria_id: f_categoria.value || null
-        };
+        const base=buildTransacaoBase(conta_id);
         if(!base.descricao) throw new Error('Descrição é obrigatória');
         if(!base.valor||base.valor<=0) throw new Error('Informe um valor > 0');
         if(!base.data) throw new Error('Informe a data');
 
         if (f_mode.value==='create'){
           if (f_kind.value==='unica'){
-            await api('POST','/rest/v1/transacoes', base);
+            await tryPost('/rest/v1/transacoes', base);
           } else if (f_kind.value==='parcelada'){
             const n=parseInt(f_qtd.value,10); if(!n||n<2) throw new Error('Qtd de parcelas (>=2)');
             const [y,m,d]=base.data.split('-').map(Number); const arr=[];
             for(let i=1;i<=n;i++){
               const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCMonth(dt.getUTCMonth()+i-1);
-              arr.push({conta_id,descricao:`${base.descricao} (${i}/${n})`,tipo:base.tipo,valor:base.valor,data:dt.toISOString().slice(0,10),status:base.status, categoria_id:base.categoria_id});
+              const b = buildTransacaoBase(conta_id);
+              b.descricao = `${base.descricao} (${i}/${n})`;
+              b.data = dt.toISOString().slice(0,10);
+              arr.push(b);
             }
-            await api('POST','/rest/v1/transacoes', arr);
+            await tryPost('/rest/v1/transacoes', arr);
           } else {
-            await api('POST','/rest/v1/recorrencias', {conta_id,descricao:base.descricao,tipo:base.tipo,valor:base.valor,inicio:base.data,fim:null,periodicidade:'mensal'});
+            await api('POST','/rest/v1/recorrencias', {user_id: currentUserId, conta_id, descricao:base.descricao, tipo:base.tipo, valor:base.valor, inicio:base.data, fim:null, periodicidade:'mensal'});
           }
         } else {
           const isVirtual = f_edit_virtual.value==='true';
@@ -667,27 +678,53 @@
             if (!recId) throw new Error('recorrencia_id ausente');
 
             if (scope==='occurrence'){
-              await api('POST','/rest/v1/transacoes', { ...base, recorrencia_id: recId });
+              await tryPost('/rest/v1/transacoes', { ...base, recorrencia_id: recId });
             } else if (scope==='series'){
               await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, {
-                descricao: base.descricao, tipo: base.tipo, valor: base.valor
+                user_id: currentUserId, descricao: base.descricao, tipo: base.tipo, valor: base.valor
               });
             } else if (scope==='from_now'){
               const d=new Date(base.data); d.setDate(d.getDate()-1);
               const fim = d.toISOString().slice(0,10);
-              await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { fim });
+              await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim });
               await api('POST','/rest/v1/recorrencias',{
-                conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor, inicio: base.data, fim: null, periodicidade:'mensal'
+                user_id: currentUserId, conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor, inicio: base.data, fim: null, periodicidade:'mensal'
               });
             }
           } else {
-            await api('PATCH', `/rest/v1/transacoes?id=eq.${encodeURIComponent(f_edit_id.value)}`, base);
+            await tryPatch(`/rest/v1/transacoes?id=eq.${encodeURIComponent(f_edit_id.value)}`, base);
           }
         }
         closeModal(); consultar(true);
       }catch(err){ alert('Erro ao salvar: '+err.message); }
     }
     qs('#m_save').onclick = salvarCreateOrEdit;
+
+    async function tryPost(path, body){
+      try{
+        return await api('POST', path, body);
+      }catch(err){
+        if(String(err.message).includes("Could not find the 'categoria_id'")){
+          HAS_CATID_IN_TRANS=false;
+          // remove categoria_id e tenta de novo
+          const scrub = (obj)=>{ const c=JSON.parse(JSON.stringify(obj)); if(Array.isArray(c)) c.forEach(o=>delete o.categoria_id); else delete c.categoria_id; return c; };
+          return await api('POST', path, scrub(body));
+        }
+        throw err;
+      }
+    }
+    async function tryPatch(path, body){
+      try{
+        return await api('PATCH', path, body);
+      }catch(err){
+        if(String(err.message).includes("Could not find the 'categoria_id'")){
+          HAS_CATID_IN_TRANS=false;
+          const scrub = (obj)=>{ const c={...obj}; delete c.categoria_id; return c; };
+          return await api('PATCH', path, scrub(body));
+        }
+        throw err;
+      }
+    }
 
     // ---------- CONTAS ----------
     async function listarContas(){
@@ -702,8 +739,8 @@
       try{
         const nome=(qs('#c_nome').value||'').trim();const saldo=Number(qs('#c_saldo').value||0);
         if(!nome)return alert('Informe o nome.');
-        await api('POST','/rest/v1/contas',{nome,saldo_inicial:saldo});
-        qs('#c_nome').value='';qs('#c_saldo').value='0';listarContas();
+        await api('POST','/rest/v1/contas',{user_id: currentUserId, nome, saldo_inicial:saldo});
+        qs('#c_nome').value='';qs('#c_saldo').value='0';listarContas();carregarContas();
       }catch(e){alert(e.message)}
     }
 
@@ -721,8 +758,8 @@
       try{
         const nome=(qs('#cat_nome').value||'').trim();
         if(!nome)return alert('Informe o nome.');
-        await api('POST','/rest/v1/categorias',{nome,tipo:qs('#cat_tipo').value,descricao:(qs('#cat_desc').value||'').trim()});
-        qs('#cat_nome').value='';qs('#cat_desc').value='';listarCategorias();
+        await api('POST','/rest/v1/categorias',{user_id: currentUserId, nome, tipo:qs('#cat_tipo').value, descricao:(qs('#cat_desc').value||'').trim()});
+        qs('#cat_nome').value='';qs('#cat_desc').value='';listarCategorias();carregarCategoriasCache();
       }catch(e){alert(e.message)}
     }
 
@@ -743,12 +780,17 @@
         if(!file) return alert('Selecione um CSV.');
         const text=await file.text(), data=parseCsv(text);
         if(!data.length) return alert('CSV vazio.');
-        await api('POST','/rest/v1/'+(tipo==='categorias'?'categorias':tipo==='transacoes'?'transacoes':'recorrencias'),data);
-        qs('#imp_msg').innerHTML=`<span class="pill">OK</span> ${data.length} registros importados em <strong>${tipo}</strong>.`;
+        // injeta user_id em massa
+        const payload = data.map(x=>({ ...x, user_id: currentUserId }));
+        const table = tipo==='categorias'?'categorias':(tipo==='transacoes'?'transacoes':'recorrencias');
+        // se for transações e não existir categoria_id, remove
+        if(table==='transacoes' && !HAS_CATID_IN_TRANS){ payload.forEach(o=>delete o.categoria_id); }
+        await api('POST','/rest/v1/'+table, payload);
+        qs('#imp_msg').innerHTML=`<span class="pill">OK</span> ${payload.length} registros importados em <strong>${table}</strong>.`;
       }catch(e){qs('#imp_msg').innerHTML=`<span class="pill">ERRO</span> ${e.message}`}
     };
 
-    // Inicial se já estiver na aba de saldos
+    // Rebind inicial se já estiver na aba de saldos
     if (location.hash.replace(/^#\/?/,'') === 'saldos' && currentSession) consultar();
   </script>
 </body>
