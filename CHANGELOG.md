@@ -3,6 +3,20 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.22] — 2025-10-19
+### Added
+- **Categorias: editar e excluir** na aba “Categorias”.
+- **Lista de transações:** exibe badge compacto **[D]/[C]** + pill com **categoria**.
+
+### Changed
+- **Dropdown de categorias** filtrado por tipo (Débito/Crédito) e **ordenado por nome**.
+- **Modal de edição** agora **preenche a categoria existente** e repovoa opções ao trocar o tipo.
+
+### Fixed
+- Mantidas correções da 1.4.21 para respostas 201/204 sem corpo e `categoria_id` opcional.
+
+---
+
 ## [1.4.21] — 2025-10-19
 ### Fixed
 - **PostgREST 201/204 sem corpo:** cliente agora trata respostas vazias com segurança (evita “Unexpected end of JSON input”).

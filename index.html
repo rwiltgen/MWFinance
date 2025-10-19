@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.21</title>
+  <title>MWFinance — v1.4.22</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -59,12 +59,13 @@
     .row-dia.today .daynum.neg{color:var(--neg)}
     .row-dia.row-neg{border-left:3px solid var(--neg)}
     .caret{display:inline-block;transform:translateY(-1px)}
+    .badge-type{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:700;padding:0 6px;background:#0f0f18}
   </style>
 </head>
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.21</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.22</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -155,6 +156,8 @@
         </select>
         <input id="cat_desc" type="text" placeholder="Descrição (opcional)"/>
         <button id="btnCriarCategoria" class="btn-primary">Criar</button>
+        <button id="btnCancelarEditCat" class="btn-link" style="display:none">Cancelar edição</button>
+        <input type="hidden" id="cat_edit_id" value=""/>
       </div>
       <div id="catsLista"></div>
     </section>
@@ -271,7 +274,7 @@
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
 
     // ---------- Feature flags ----------
-    let HAS_CATID_IN_TRANS = true; // desliga automaticamente se detectar ausência da coluna
+    let HAS_CATID_IN_TRANS = true; // desliga se detectar que a coluna não existe
 
     // ---------- Helpers ----------
     const qs = (s)=>document.querySelector(s);
@@ -283,7 +286,6 @@
     function onlyDay(diaISO){ return String(Number((diaISO||'').slice(8,10)||'0')); }
 
     function mergeHeaders(base) {
-      // Garante 'Prefer: return=representation' pra evitar corpo vazio (201/204) e facilitar parse
       return { ...base, Prefer: (base.Prefer ? base.Prefer + ', ' : '') + 'return=representation' };
     }
 
@@ -304,12 +306,10 @@
         body: body ? JSON.stringify(body) : undefined
       });
       if(!res.ok){
-        // Tenta extrair texto/JSON de erro
         let errTxt = '';
         try{ errTxt = await res.text(); } catch {}
         throw new Error(errTxt || `${res.status}`);
       }
-      // Resposta pode ser vazia (204/201 sem body). Trate com segurança.
       const ct = res.headers.get('content-type') || '';
       const clen = res.headers.get('content-length');
       if (!ct.includes('application/json')) return true;
@@ -419,6 +419,7 @@
     const expandedDays = new Set();
     window._lastRows = null;
 
+    // cache de categorias
     let categoriasCache = [];
     async function carregarCategoriasCache(){
       try{
@@ -462,6 +463,8 @@
     }
 
     function catNameById(id){ return categoriasCache.find(c=>c.id===id)?.nome || ''; }
+    function catTypeShort(tipo){ return tipo==='debito'?'D':'C'; }
+    function catTypeFull(tipo){ return tipo==='debito'?'Débito':'Crédito'; }
 
     function linhaDia(r){
       const diaISO = r.dia;
@@ -491,7 +494,9 @@
 
     function expCard(txs,dia){
       const items=txs.map(t=>{
-        const categoria = (HAS_CATID_IN_TRANS && t.categoria_id) ? ` <span class="pill">${catNameById(t.categoria_id)}</span>` : '';
+        const catNome = (HAS_CATID_IN_TRANS && t.categoria_id) ? catNameById(t.categoria_id) : '';
+        const typeBadge = `<span class="badge-type" title="${catTypeFull(t.tipo)}">${catTypeShort(t.tipo)}</span>`;
+        const catPill = catNome ? ` <span class="pill">${catNome}</span>` : '';
         const select =
 `<select class="tx-status"
   data-virtual="${!!t.virtual}"
@@ -519,7 +524,7 @@
         const delBtn = t.virtual
           ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}">Excluir recorrência</button>`
           : `<button class="tx-del btn-danger" data-id="${t.id}" data-status="${t.status||'cadastrada'}">Excluir</button>`;
-        return `<li><span class="pill">${t.tipo}</span> <strong>${t.descricao}</strong> — ${money(t.valor)} ${categoria} ${t.virtual?'<span class="pill">virtual</span>':''}
+        return `<li>${typeBadge} <strong>${t.descricao}</strong> — ${money(t.valor)}${catPill} ${t.virtual?'<span class="pill">virtual</span>':''}
           <span style="margin-left:8px;display:inline-flex;gap:8px;">${select}${editBtn}${delBtn}</span></li>`;
       }).join('');
       return `<div class="expand-card"><ul class="tx-list">${items}</ul></div>`
@@ -597,8 +602,14 @@
     const f_kind=qs('#f_kind'),f_desc=qs('#f_descricao'),f_tipo=qs('#f_tipo'),f_valor=qs('#f_valor'),f_data=qs('#f_data'),grpPar=qs('#grpParcelas'),f_qtd=qs('#f_qtd'),grpPer=qs('#grpPeriodo'),f_periodicidade=qs('#f_periodicidade'),f_status=qs('#f_status');
     const f_categoria=qs('#f_categoria'), grpScope=qs('#grpScope'), f_scope=qs('#f_scope');
 
-    function populateCategoriasSelect(){
-      f_categoria.innerHTML = `<option value="">(sem categoria)</option>` + categoriasCache.map(c=>`<option value="${c.id}">${c.nome} (${c.tipo})</option>`).join('');
+    function populateCategoriasSelect(tipoFiltro, selectedId){
+      const t = tipoFiltro || f_tipo.value;
+      const list = categoriasCache
+        .filter(c=> !t || c.tipo===t)
+        .slice()
+        .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
+      f_categoria.innerHTML = `<option value="">(sem categoria)</option>` + list.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
+      if (selectedId) f_categoria.value = selectedId;
     }
 
     function openModal(){
@@ -606,7 +617,7 @@
       qs('#modalTitle').textContent='Nova Transação';
       grpPar.style.display='none';grpPer.style.display='none';grpScope.style.display='none';f_kind.value='unica';
       f_desc.value='';f_tipo.value='debito';f_valor.value='';f_data.value=new Date().toISOString().slice(0,10);f_status.value='cadastrada';
-      populateCategoriasSelect(); f_categoria.value='';
+      populateCategoriasSelect('debito',''); // default
       $modal.classList.add('open');$modal.style.display='flex';
     }
     function openEditModal({id,virtual,data,descricao,tipo,valor,status,recorrencia_id,categoria_id}){
@@ -614,7 +625,7 @@
       qs('#modalTitle').textContent=virtual?'Editar (recorrência)':'Editar transação';
       grpPar.style.display='none';grpPer.style.display='none';f_kind.value='unica';
       f_desc.value=descricao||'';f_tipo.value=tipo||'debito';f_valor.value=valor||'';f_data.value=data||new Date().toISOString().slice(0,10);f_status.value=status||'cadastrada';
-      populateCategoriasSelect(); f_categoria.value=categoria_id||'';
+      populateCategoriasSelect(tipo, categoria_id||'');
       grpScope.style.display = virtual ? 'block' : 'none';
       $modal.classList.add('open');$modal.style.display='flex';
     }
@@ -624,6 +635,7 @@
     qs('#m_cancel').onclick=closeModal;
     document.addEventListener('keydown',(ev)=>{if(ev.key==='Escape'&&$modal.classList.contains('open'))closeModal()})
     f_kind.addEventListener('change',()=>{grpPar.style.display=(f_kind.value==='parcelada')?'block':'none';grpPer.style.display=(f_kind.value==='recorrente')?'block':'none'})
+    f_tipo.addEventListener('change',()=>{ populateCategoriasSelect(f_tipo.value, f_categoria.value||''); });
 
     function buildTransacaoBase(conta_id){
       const base={
@@ -764,18 +776,69 @@
     async function listarCategorias(){
       try{
         const r=await api('GET','/rest/v1/categorias?select=id,nome,tipo,descricao&order=nome.asc');
-        const el=qs('#catsLista');
         categoriasCache = Array.isArray(r)? r : [];
+        const el=qs('#catsLista');
         if(!Array.isArray(r)||!r.length){el.innerHTML='<div class="muted">Nenhuma categoria.</div>';return}
-        el.innerHTML=r.map(c=>`<div class="row"><span class="pill">${c.nome}</span><span class="pill">${c.tipo}</span><span class="muted">${c.descricao||''}</span></div>`).join('');
+        el.innerHTML=r.map(c=>`
+          <div class="row" data-id="${c.id}">
+            <span class="pill">${c.nome}</span>
+            <span class="pill">${c.tipo}</span>
+            <span class="muted">${c.descricao||''}</span>
+            <span style="flex:1"></span>
+            <button class="btn-link cat-edit" data-id="${c.id}">Editar</button>
+            <button class="btn-danger cat-del" data-id="${c.id}">Excluir</button>
+          </div>
+        `).join('');
+        qsa('.cat-edit').forEach(b=>b.addEventListener('click',startEditCategoria));
+        qsa('.cat-del').forEach(b=>b.addEventListener('click',deleteCategoria));
       }catch(e){qs('#catsLista').innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
     }
+
+    function startEditCategoria(e){
+      const id=e.currentTarget.dataset.id;
+      const cat=categoriasCache.find(x=>x.id===id); if(!cat) return;
+      qs('#cat_edit_id').value=id;
+      qs('#cat_nome').value=cat.nome||'';
+      qs('#cat_tipo').value=cat.tipo||'debito';
+      qs('#cat_desc').value=cat.descricao||'';
+      qs('#btnCriarCategoria').textContent='Salvar';
+      qs('#btnCancelarEditCat').style.display='inline-block';
+    }
+    function cancelEditCategoria(){
+      qs('#cat_edit_id').value='';
+      qs('#cat_nome').value='';
+      qs('#cat_tipo').value='debito';
+      qs('#cat_desc').value='';
+      qs('#btnCriarCategoria').textContent='Criar';
+      qs('#btnCancelarEditCat').style.display='none';
+    }
+    qs('#btnCancelarEditCat').onclick=cancelEditCategoria;
+
+    async function deleteCategoria(e){
+      const id=e.currentTarget.dataset.id;
+      if(!confirm('Excluir esta categoria?')) return;
+      try{
+        await api('DELETE', `/rest/v1/categorias?id=eq.${encodeURIComponent(id)}`);
+        await listarCategorias(); await carregarCategoriasCache();
+      }catch(err){ alert('Erro ao excluir categoria: '+err.message); }
+    }
+
     qs('#btnCriarCategoria').onclick=async()=>{
       try{
+        const idEdit = qs('#cat_edit_id').value.trim();
         const nome=(qs('#cat_nome').value||'').trim();
+        const tipo=qs('#cat_tipo').value;
+        const descricao=(qs('#cat_desc').value||'').trim();
         if(!nome)return alert('Informe o nome.');
-        await api('POST','/rest/v1/categorias',{user_id: currentUserId, nome, tipo:qs('#cat_tipo').value, descricao:(qs('#cat_desc').value||'').trim()});
-        qs('#cat_nome').value='';qs('#cat_desc').value='';listarCategorias();carregarCategoriasCache();
+
+        if (!idEdit){
+          await api('POST','/rest/v1/categorias',{user_id: currentUserId, nome, tipo, descricao});
+        } else {
+          await api('PATCH', `/rest/v1/categorias?id=eq.${encodeURIComponent(idEdit)}`, { user_id: currentUserId, nome, tipo, descricao });
+        }
+        cancelEditCategoria();
+        await listarCategorias();
+        await carregarCategoriasCache();
       }catch(e){alert(e.message)}
     }
 
