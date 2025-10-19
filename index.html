@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.18</title>
+  <title>MWFinance — v1.4.19</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -13,7 +13,7 @@
     }
     *{box-sizing:border-box}
     body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:var(--bg);color:#eaeaea}
-    a{color:var(--link);text-decoration:underline}a:hover{color:var(--link-hover)}
+    a{color:var(--link);text-decoration:underline}a:hover{color:#cfe0ff}
     .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:12px;margin-bottom:12px;box-shadow:0 6px 24px rgba(0,0,0,.35)}
     .muted{color:var(--muted)}
     .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
@@ -63,7 +63,7 @@
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.18</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.19</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -278,6 +278,23 @@
     const todayISO = new Date().toISOString().slice(0,10);
     function onlyDay(diaISO){ return String(Number((diaISO||'').slice(8,10)||'0')); }
 
+    function getParamFromUrl(name){
+      const url = new URL(window.location.href);
+      const hash = new URLSearchParams(url.hash.slice(1));
+      return url.searchParams.get(name) || hash.get(name);
+    }
+    function safePreviewUrl(u){
+      try{
+        const x = new URL(u);
+        const host = x.hostname;
+        // permita apenas domínios de preview comuns e localhost
+        if (host.startsWith('mwfinance-git-') && host.endsWith('.vercel.app')) return x.href;
+        if (host === 'localhost' || host === '127.0.0.1') return x.href;
+        if (host === 'preview.mwfinance.app') return x.href; // caso futuro
+        return null;
+      }catch{ return null; }
+    }
+
     async function hdr(){
       const { data:{ session } } = await supabase.auth.getSession();
       if(!session) throw new Error('Sem sessão');
@@ -312,7 +329,16 @@
       $auth.style.display=logged?'none':'block';
       $ubar.style.display=logged?'block':'none';
       $uinfo.textContent=logged?(s.user.email||'Usuário'):'—';
-      if(logged){
+
+      if (logged){
+        // Se chegou na produção com "state" apontando para preview, volte ao preview automaticamente.
+        const st = getParamFromUrl('state');
+        const backUrl = safePreviewUrl(st);
+        if (backUrl && location.hostname === 'mwfinance.vercel.app'){
+          // mantém rota padrão ao voltar
+          location.replace(backUrl.replace(/[#?].*$/,'') + '#/saldos');
+          return;
+        }
         const target = (location.hash.replace(/^#\/?/,'')||'saldos');
         show(target);
       }
@@ -346,13 +372,17 @@
       }catch(e){ showMsg('error','Erro: '+e.message) }
     };
 
-    // Redirecionamento dinâmico (preview fica no preview; prod fica na prod)
+    // Redirecionamento dinâmico + "state" para voltar ao preview se cair na produção
     const hostname = window.location.hostname;
     const isProd = hostname === 'mwfinance.vercel.app';
     const redirectTo = isProd ? 'https://mwfinance.vercel.app' : window.location.origin;
+    const state = encodeURIComponent(window.location.origin + window.location.pathname + window.location.hash);
 
     qs('#btnLoginGoogle').onclick=async()=>{
-      const { error } = await supabase.auth.signInWithOAuth({ provider:'google', options:{redirectTo} });
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider:'google',
+        options:{ redirectTo, queryParams: { state } }
+      });
       if(error) showMsg('error', error.message);
     };
 
@@ -360,8 +390,8 @@
 
     supabase.auth.onAuthStateChange((_e,s)=>{
       setSession(s);
-      // mantém hash simples após retorno do Supabase
-      if(s && location.href.includes('access_token')) {
+      // remove tokens e params da URL após o retorno do Supabase
+      if(s && (location.href.includes('access_token') || location.search)){
         history.replaceState(null, '', location.origin + location.pathname + '#/saldos');
       }
     });
@@ -486,14 +516,12 @@
       return `<div class="expand-card"><ul class="tx-list">${items}</ul></div>`
     }
 
-    qsa('.toggle')?.forEach(b=>b.addEventListener('click',toggleExp)); // no-op at start
     function toggleExp(e){
       const b=e.currentTarget; const dia=b.dataset.dia;
       if(expandedDays.has(dia)) expandedDays.delete(dia); else expandedDays.add(dia);
       if (window._lastRows) renderTabela(window._lastRows); else consultar(true);
     }
 
-    // Status -> materializa virtual; atualiza materializada
     async function onChangeStatus(e){
       const s=e.currentTarget, v=s.value;
       try{
@@ -548,7 +576,6 @@
       qsa('.tx-mat-edit').forEach(b=>b.addEventListener('click',onMatEdit));
     }
 
-    // ---------- Editar / Materializar & editar ----------
     const $modal=qs('#modal-backdrop');
     const f_mode=qs('#f_mode'),f_edit_id=qs('#f_edit_id'),f_edit_virtual=qs('#f_edit_virtual'),f_edit_recorrencia_id=qs('#f_edit_recorrencia_id');
     const f_kind=qs('#f_kind'),f_desc=qs('#f_descricao'),f_tipo=qs('#f_tipo'),f_valor=qs('#f_valor'),f_data=qs('#f_data'),grpPar=qs('#grpParcelas'),f_qtd=qs('#f_qtd'),grpPer=qs('#grpPeriodo'),f_periodicidade=qs('#f_periodicidade'),f_status=qs('#f_status');
@@ -640,15 +667,12 @@
             if (!recId) throw new Error('recorrencia_id ausente');
 
             if (scope==='occurrence'){
-              // materializa esta ocorrência apenas
               await api('POST','/rest/v1/transacoes', { ...base, recorrencia_id: recId });
             } else if (scope==='series'){
-              // altera a série inteira (aplica nos próximos meses previstos)
               await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, {
                 descricao: base.descricao, tipo: base.tipo, valor: base.valor
               });
             } else if (scope==='from_now'){
-              // encerra a recorrência atual no dia anterior e cria nova a partir da data editada
               const d=new Date(base.data); d.setDate(d.getDate()-1);
               const fim = d.toISOString().slice(0,10);
               await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { fim });
@@ -724,7 +748,7 @@
       }catch(e){qs('#imp_msg').innerHTML=`<span class="pill">ERRO</span> ${e.message}`}
     };
 
-    // Inicial render se já estiver na aba de saldos
+    // Inicial se já estiver na aba de saldos
     if (location.hash.replace(/^#\/?/,'') === 'saldos' && currentSession) consultar();
   </script>
 </body>

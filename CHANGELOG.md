@@ -3,6 +3,13 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.19] — 2025-10-19
+### Fixed
+- **Login Google (OAuth):** adiciona `state` com a URL atual e lógica de retorno automático.
+  - Mesmo que o Supabase redirecione para a **Site URL** (produção), o app detecta e **volta ao Preview original**.
+- Mantém redirecionamento dinâmico (preview ↔ produção) e a UI/funcionalidades da 1.4.18.
+
+---
 
 ## [1.4.18] — 2025-10-19
 ### Fixed
