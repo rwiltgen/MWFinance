@@ -3,6 +3,16 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.23] — 2025-10-19
+### Fixed
+- **Lista de transações**: exibe a **categoria** mesmo quando o RPC não envia `categoria_id` (fallback por nome).
+- **Modal de edição**: a **categoria é pré-selecionada** usando `categoria_id` ou, na ausência, _match_ por `categoria_nome`.
+
+### UX
+- Mantido badge compacto **[D]/[C]** (com tooltip) e pill com **nome da categoria**.
+
+---
+
 ## [1.4.22] — 2025-10-19
 ### Added
 - **Categorias: editar e excluir** na aba “Categorias”.
