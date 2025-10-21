@@ -2,7 +2,8 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.25</title> <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MWFinance — v1.4.26</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
       --bg:#0b0b10; --card:#141421; --row:#11111a; --row-alt:#11111c;
@@ -59,12 +60,17 @@
     .row-dia.row-neg{border-left:3px solid var(--neg)}
     .caret{display:inline-block;transform:translateY(-1px)}
     .badge-type{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;border-radius:6px;border:1px solid var(--border);font-size:12px;font-weight:700;padding:0 6px;background:#0f0f18}
+    /* Confirm modal (3 opções) */
+    #confirmRec{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:1100}
+    #confirmRec.open{display:flex}
+    #confirmRec .modal{max-width:520px}
   </style>
 </head>
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.25</span></div> <div class="right">
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.25</span></div>
+      <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
         <button id="btnLogout" class="btn-link">Sair</button>
@@ -80,6 +86,7 @@
   </header>
 
   <main>
+    <!-- AUTH -->
     <section id="authView" class="card">
       <h2 style="margin:0 0 10px;">Entrar</h2>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
@@ -91,6 +98,7 @@
         <button id="btnLogin" class="btn-primary">Entrar</button>
         <button id="btnLoginGoogle" class="gbtn" title="Google OAuth">
           <span class="glogo" aria-hidden="true">
+            <!-- Google "G" -->
             <svg viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.9 0 7 1.6 9.2 3.1l6.2-6.2C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.4 13.2l7.7 6C12 13.4 17.5 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.5 24.5c0-1.7-.2-3.4-.6-5H24v9.5h12.7c-.5 2.6-2 4.8-4.2 6.3l6.4 5c3.7-3.4 7.6-8.8 7.6-15.8z"/>
@@ -104,6 +112,7 @@
       <p id="authMsg" class="hint" style="margin:6px 0 0;"></p>
     </section>
 
+    <!-- SALDOS -->
     <section id="view-saldos" class="card app" style="display:none">
       <h2 style="margin:0 0 10px;">Saldos diários</h2>
       <div class="row">
@@ -129,6 +138,7 @@
       <div id="output"></div>
     </section>
 
+    <!-- CONTAS -->
     <section id="view-contas" class="card app" style="display:none">
       <h2 style="margin:0 0 10px;">Contas</h2>
       <div class="row">
@@ -139,6 +149,7 @@
       <div id="contasLista"></div>
     </section>
 
+    <!-- CATEGORIAS -->
     <section id="view-categorias" class="card app" style="display:none">
       <h2 style="margin:0 0 10px;">Categorias</h2>
       <div class="row">
@@ -155,6 +166,7 @@
       <div id="catsLista"></div>
     </section>
 
+    <!-- IMPORTAR -->
     <section id="view-importar" class="card app" style="display:none">
       <h2 style="margin:0 0 10px;">Importar CSV</h2>
       <div class="row">
@@ -175,6 +187,7 @@
       <div id="imp_msg" style="margin-top:8px;"></div>
     </section>
 
+    <!-- MODAL TRANSAÇÃO -->
     <div id="modal-backdrop">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
@@ -256,6 +269,19 @@
         <p id="m_hint" class="muted" style="margin-top:8px;"></p>
       </div>
     </div>
+
+    <!-- MODAL CONFIRM RECORRÊNCIA -->
+    <div id="confirmRec">
+      <div class="modal">
+        <h3 style="margin:0 0 10px;">Excluir recorrência</h3>
+        <p class="muted" id="confirmRecText" style="margin:0 0 12px;">O que deseja excluir?</p>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button id="cr_cancel" class="btn-link">Cancelar</button>
+          <button id="cr_future" class="btn-link">Futuras</button>
+          <button id="cr_series" class="btn-danger">Série</button>
+        </div>
+      </div>
+    </div>
   </main>
 
   <script src="./config.js"></script>
@@ -264,10 +290,8 @@
     const { SUPABASE_URL, SUPABASE_ANON_KEY } = window.CONFIG;
     const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth:{ persistSession:true, autoRefreshToken:true } });
 
-    // ---------- Feature flags ----------
-    let HAS_CATID_IN_TRANS = true; // desliga se detectar que a coluna não existe
+    let HAS_CATID_IN_TRANS = true;
 
-    // ---------- Helpers ----------
     const qs = (s)=>document.querySelector(s);
     const qsa = (s)=>Array.from(document.querySelectorAll(s));
     const money = (n)=> (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
@@ -275,6 +299,7 @@
     const sections = { saldos:qs('#view-saldos'), contas:qs('#view-contas'), categorias:qs('#view-categorias'), importar:qs('#view-importar') };
     const todayISO = new Date().toISOString().slice(0,10);
     const onlyDay = (diaISO)=> String(Number((diaISO||'').slice(8,10)||'0'));
+    const normalize = (s)=> (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim().toLowerCase();
 
     const hostname = window.location.hostname;
     const isProd = hostname === 'mwfinance.vercel.app';
@@ -282,7 +307,14 @@
 
     const catTypeShort = (tipo)=> tipo==='debito'?'D':'C';
     const catTypeFull  = (tipo)=> tipo==='debito'?'Débito':'Crédito';
-    const normalize = (s)=> (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim().toLowerCase();
+
+    function addMonths(dateISO, n){
+      const d=new Date(dateISO); const day=d.getUTCDate();
+      d.setUTCMonth(d.getUTCMonth()+n);
+      // preservar dia quando possível
+      if(d.getUTCDate()!==day){ d.setUTCDate(0); } // fim do mês anterior
+      return d.toISOString().slice(0,10);
+    }
 
     function mergeHeaders(base) {
       return { ...base, Prefer: (base.Prefer ? base.Prefer + ', ' : '') + 'return=representation' };
@@ -405,14 +437,12 @@
         categoriasCache = Array.isArray(r)? r : [];
       }catch{ categoriasCache=[]; }
     }
-    // [FIX 1/2] Usa '==' para coerção de tipo (string/number) no ID.
-    const catNameById = (id)=> categoriasCache.find(c=>c.id == id)?.nome || '';
+    const catNameById = (id)=> categoriasCache.find(c=>c.id===id)?.nome || '';
     const catByName = (nome)=>{
       const n = normalize(nome);
       return categoriasCache.find(c=> normalize(c.nome) === n) || null;
     };
 
-    // resolve categoria a partir do objeto de transação do RPC (com/sem categoria_id)
     function resolveCategory(tx){
       let id = tx.categoria_id || tx.categoriaId || null;
       let nome = '';
@@ -449,7 +479,7 @@
         const conta=$conta.value,ym=$mesRef.value;
         if(!conta||!ym){$out.innerHTML='<div class="muted">Selecione a conta e mês.</div>';return}
         const ref=ym+'-01';
-        await carregarCategoriasCache(); // garante categorias antes de listar
+        await carregarCategoriasCache();
 
         const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`,{
           method:'POST',headers:await hdr(),
@@ -460,6 +490,10 @@
         if(!keepExpanded) expandedDays.clear();
         renderTabela(rows);
       }catch(e){$out.innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
+    }
+
+    function txKey(t, dia){
+      return t.id ? `m-${t.id}` : `v-${t.recorrencia_id||'x'}-${t.data||dia}`;
     }
 
     function linhaDia(r){
@@ -491,8 +525,9 @@
     function expCard(txs,dia){
       const items=txs.map(t=>{
         const { id:catId, nome:catNome } = resolveCategory(t);
+        const key = txKey(t, dia);
         const typeBadge = `<span class="badge-type" title="${catTypeFull(t.tipo)}">${catTypeShort(t.tipo)}</span>`;
-        const catPill = catNome ? ` <span class="pill">${catNome}</span>` : '';
+        const catPill = `<span class="catpill" id="catpill-${key}">${catNome?` <span class="pill">${catNome}</span>`:''}</span>`;
         const select =
 `<select class="tx-status"
   data-virtual="${!!t.virtual}"
@@ -524,7 +559,7 @@
         const delBtn = t.virtual
           ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}" data-dia="${t.data||dia}">Excluir recorrência…</button>`
           : `<button class="tx-del btn-danger" data-id="${t.id}" data-status="${t.status||'cadastrada'}">Excluir</button>`;
-        return `<li>${typeBadge} <strong>${t.descricao}</strong> — ${money(t.valor)}${catPill} ${t.virtual?'<span class="pill">virtual</span>':''}
+        return `<li>${typeBadge} <strong>${t.descricao}</strong> — ${money(t.valor)} ${catPill} ${t.virtual?'<span class="pill">virtual</span>':''}
           <span style="margin-left:8px;display:inline-flex;gap:8px;">${select}${editBtn}${delBtn}</span></li>`;
       }).join('');
       return `<div class="expand-card"><ul class="tx-list">${items}</ul></div>`
@@ -534,9 +569,10 @@
       qsa('.toggle').forEach(b=>b.addEventListener('click',toggleExp));
       qsa('.tx-status').forEach(s=>s.addEventListener('change',onChangeStatus));
       qsa('.tx-del').forEach(b=>b.addEventListener('click',onDeleteTx));
-      qsa('.tx-del-rec').forEach(b=>b.addEventListener('click',onDeleteRec));
+      qsa('.tx-del-rec').forEach(b=>b.addEventListener('click',onAskDeleteRec));
       qsa('.tx-edit').forEach(b=>b.addEventListener('click',onEditTx));
       qsa('.tx-mat-edit').forEach(b=>b.addEventListener('click',onMatEdit));
+      enrichCategoryPillsByIds();
     }
 
     function toggleExp(e){
@@ -545,25 +581,49 @@
       if (window._lastRows) renderTabela(window._lastRows); else consultar(true);
     }
 
+    // ----- Materialização (status) -----
     async function onChangeStatus(e){
       const s=e.currentTarget, v=s.value;
       try{
         if (s.dataset.virtual === 'true'){
-          // MATERIALIZA APENAS ESTA OCORRÊNCIA
-          const body = {
+          // 1) buscar dados da recorrência
+          const recId = s.dataset.recorrenciaId;
+          const [rec] = await api('GET', `/rest/v1/recorrencias?select=id,conta_id,descricao,tipo,valor,periodicidade&limit=1&id=eq.${encodeURIComponent(recId)}`);
+
+          // 2) materializa ocorrência VINCULANDO à recorrência (remove virtual do mês)
+          const bodyTx = {
             user_id: currentUserId,
-            conta_id: s.dataset.contaId,
-            descricao: s.dataset.descricao,
-            tipo: s.dataset.tipo,
-            valor: Number(s.dataset.valor),
+            conta_id: rec?.conta_id || s.dataset.contaId,
+            descricao: s.dataset.descricao || rec?.descricao,
+            tipo: s.dataset.tipo || rec?.tipo,
+            valor: Number(s.dataset.valor || rec?.valor || 0),
             data: s.dataset.data,
             status: v,
-            [cite_start]// [FIX 4] Vincula o ID da recorrência para suprimir a virtual duplicada (Bug [cite: 4])
-            recorrencia_id: s.dataset.recorrenciaId || null
+            recorrencia_id: recId
           };
-          if (HAS_CATID_IN_TRANS && s.dataset.categoriaId) body.categoria_id = s.dataset.categoriaId;
-          await tryPost('/rest/v1/transacoes', body);
+          if (HAS_CATID_IN_TRANS && s.dataset.categoriaId) bodyTx.categoria_id = s.dataset.categoriaId;
+          await tryPost('/rest/v1/transacoes', bodyTx);
+
+          // 3) fecha série atual em D e cria nova a partir do mês seguinte
+          const d = s.dataset.data;
+          const dPrev = new Date(d); dPrev.setDate(dPrev.getDate()-1);
+          const fim = dPrev.toISOString().slice(0,10);
+          await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim });
+
+          const inicioNova = addMonths(d, 1).slice(0,10);
+          await api('POST', '/rest/v1/recorrencias', {
+            user_id: currentUserId,
+            conta_id: rec?.conta_id || s.dataset.contaId,
+            descricao: rec?.descricao || s.dataset.descricao,
+            tipo: rec?.tipo || s.dataset.tipo,
+            valor: Number(rec?.valor || s.dataset.valor || 0),
+            inicio: inicioNova,
+            fim: null,
+            periodicidade: rec?.periodicidade || 'mensal'
+          });
+
         } else {
+          // edição de status em materializada
           await tryPatch(`/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v, user_id: currentUserId });
         }
         consultar(true);
@@ -581,33 +641,29 @@
         .then(()=>consultar(true)).catch(err=>alert(err.message));
     }
 
-    [cite_start]// [FIX 3] Corrige o fluxo de exclusão de recorrência (Bugs [cite: 5][cite_start], [cite: 6])
-    async function onDeleteRec(e){
-      const recId=e.currentTarget.dataset.recorrenciaId;
-      const diaRef=e.currentTarget.dataset.dia; // dia da ocorrência clicada
-      if(!recId) return;
-
-      [cite_start]// [FIX 3] Per[cite: 5], Cancelar deve ser Cancelar.
-      // Usamos 2 dialogs para 3 opções (Série, Futuras, Cancelar)
-      if (!confirm('Deseja excluir a recorrência?')) {
-        return; [cite_start]// [cite: 5] CANCELAR
-      }
-
-      [cite_start]// [FIX 3] Segundo dialog para [Série] ou [Futuras] (Per [cite: 6])
-      const choiceSerie = confirm('Excluir a SÉRIE INTEIRA?\n\n[ OK ] = Excluir toda a série (passado e futuro)\n[ Cancelar ] = Excluir apenas esta e as futuras (dali em diante)');
-
-      try{
-        [cite_start]if(choiceSerie){ // [cite: 6] Botão "Série"
-          await api('DELETE',`/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`);
-        [cite_start]}else{ // [cite: 6] Botão "Futuras"
-          if(!diaRef){ alert('Não foi possível obter a data de referência.'); return; }
-          const d=new Date(diaRef); d.setDate(d.getDate()-1);
-          const fim = d.toISOString().slice(0,10);
-          await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim });
-        }
-        consultar(true);
-      }catch(err){ alert('Erro ao atualizar recorrência: '+err.message); }
+    // ----- Excluir recorrência (3 botões) -----
+    let _recConfirm = { id:null, dia:null };
+    function onAskDeleteRec(e){
+      _recConfirm.id = e.currentTarget.dataset.recorrenciaId;
+      _recConfirm.dia = e.currentTarget.dataset.dia;
+      qs('#confirmRecText').textContent = 'Excluir a recorrência inteira, apenas futuras a partir desta data, ou cancelar?';
+      qs('#confirmRec').classList.add('open');
     }
+    qs('#cr_cancel').onclick=()=>{ qs('#confirmRec').classList.remove('open'); };
+    qs('#cr_series').onclick=async()=>{
+      try{
+        await api('DELETE',`/rest/v1/recorrencias?id=eq.${encodeURIComponent(_recConfirm.id)}`);
+        qs('#confirmRec').classList.remove('open'); consultar(true);
+      }catch(err){ alert('Erro: '+err.message); }
+    };
+    qs('#cr_future').onclick=async()=>{
+      try{
+        const d=new Date(_recConfirm.dia); d.setDate(d.getDate()-1);
+        const fim = d.toISOString().slice(0,10);
+        await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(_recConfirm.id)}`, { user_id: currentUserId, fim });
+        qs('#confirmRec').classList.remove('open'); consultar(true);
+      }catch(err){ alert('Erro: '+err.message); }
+    };
 
     function renderTabela(rows){
       window._lastRows = rows;
@@ -621,21 +677,54 @@
       rebindRows();
     }
 
+    // ---------- Pós-render: enriquecer pills de categoria por ID ----------
+    async function enrichCategoryPillsByIds(){
+      try{
+        // ids materializados que não têm categoria na UI
+        const selects = qsa('.tx-status');
+        const ids = selects
+          .map(s=>({ id:s.dataset.id, cat:s.dataset.categoriaId }))
+          .filter(x=>x.id && !x.cat)
+          .map(x=>x.id);
+
+        if(!ids.length) return;
+        // fatiar para não estourar URL
+        const chunk = 50;
+        for(let i=0;i<ids.length;i+=chunk){
+          const slice = ids.slice(i,i+chunk).map(encodeURIComponent).join(',');
+          const rows = await api('GET', `/rest/v1/transacoes?select=id,categoria_id&order=id.asc&id=in.(${slice})`);
+          if(Array.isArray(rows)){
+            rows.forEach(r=>{
+              const catName = r.categoria_id ? (catNameById(r.categoria_id) || '') : '';
+              if(catName){
+                const key = `m-${r.id}`;
+                const span = qs(`#catpill-${key}`);
+                if(span) span.innerHTML = ` <span class="pill">${catName}</span>`;
+                // também atualiza dataset para futuras ações
+                const sel = selects.find(s=>s.dataset.id===r.id);
+                if(sel){ sel.dataset.categoriaId = r.categoria_id; }
+              }
+            });
+          }
+        }
+      }catch{ /* silencioso */ }
+    }
+
     // ------------ Modal ------------
     const $modal=qs('#modal-backdrop');
     const f_mode=qs('#f_mode'),f_edit_id=qs('#f_edit_id'),f_edit_virtual=qs('#f_edit_virtual'),f_edit_recorrencia_id=qs('#f_edit_recorrencia_id');
     const f_kind=qs('#f_kind'),f_desc=qs('#f_descricao'),f_tipo=qs('#f_tipo'),f_valor=qs('#f_valor'),f_data=qs('#f_data'),grpPar=qs('#grpParcelas'),f_qtd=qs('#f_qtd'),grpPer=qs('#grpPeriodo'),f_periodicidade=qs('#f_periodicidade'),f_status=qs('#f_status');
     const f_categoria=qs('#f_categoria'), grpScope=qs('#grpScope'), f_scope=qs('#f_scope');
 
-    function populateCategoriasSelect(tipoFiltro, selectedId){
+    async function populateCategoriasSelect(tipoFiltro, selectedId){
+      if (!categoriasCache.length) await carregarCategoriasCache();
       const t = tipoFiltro || f_tipo.value;
       const list = categoriasCache
         .filter(c=> !t || c.tipo===t)
         .slice()
         .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
       f_categoria.innerHTML = `<option value="">(sem categoria)</option>` + list.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-      // [FIX 1/2] Usa '==' para coerção de tipo (string/number) no ID. [cite_start](Bug [cite: 3])
-      if (selectedId && list.some(c=>c.id == selectedId)) f_categoria.value = selectedId;
+      if (selectedId && list.some(c=>c.id===selectedId)) f_categoria.value = selectedId;
     }
 
     function openModal(){
@@ -647,19 +736,18 @@
       $modal.classList.add('open');$modal.style.display='flex';
     }
 
-    function openEditModal({id,virtual,data,descricao,tipo,valor,status,recorrencia_id,categoria_id,categoria_nome}){
+    async function openEditModal({id,virtual,data,descricao,tipo,valor,status,recorrencia_id,categoria_id,categoria_nome}){
       f_mode.value='edit';f_edit_id.value=id||'';f_edit_virtual.value=String(!!virtual);f_edit_recorrencia_id.value = recorrencia_id || '';
       qs('#modalTitle').textContent=virtual?'Editar (recorrência)':'Editar transação';
       grpPar.style.display='none';grpPer.style.display='none';f_kind.value='unica';
       f_desc.value=descricao||'';f_tipo.value=tipo||'debito';f_valor.value=valor||'';f_data.value=data||new Date().toISOString().slice(0,10);f_status.value=status||'cadastrada';
 
-      // resolve categoria: prioridade id; fallback nome (normalizado)
       let selected = categoria_id || null;
       if (!selected && categoria_nome){
-        const hit = catByName(categoria_nome); // Usa helper
+        const hit = categoriasCache.find(c=> normalize(c.nome) === normalize(categoria_nome) );
         if (hit) selected = hit.id;
       }
-      populateCategoriasSelect(tipo, selected||'');
+      await populateCategoriasSelect(tipo, selected||'');
       grpScope.style.display = virtual ? 'block' : 'none';
       $modal.classList.add('open');$modal.style.display='flex';
     }
@@ -742,8 +830,17 @@
             if (!recId) throw new Error('recorrencia_id ausente');
 
             if (scope==='occurrence'){
-              // materializa apenas esta, sem linkar a série
-              await tryPost('/rest/v1/transacoes', { ...base, recorrencia_id: null });
+              // materializa + split de série
+              const bodyTx = { ...base, recorrencia_id: recId };
+              await tryPost('/rest/v1/transacoes', bodyTx);
+              const d = base.data;
+              const dPrev = new Date(d); dPrev.setDate(dPrev.getDate()-1);
+              const fim = dPrev.toISOString().slice(0,10);
+              await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim });
+              const inicioNova = addMonths(d, 1).slice(0,10);
+              await api('POST','/rest/v1/recorrencias',{
+                user_id: currentUserId, conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor, inicio: inicioNova, fim: null, periodicidade:'mensal'
+              });
             } else if (scope==='series'){
               await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, {
                 user_id: currentUserId, descricao: base.descricao, tipo: base.tipo, valor: base.valor
@@ -833,8 +930,7 @@
     }
     function startEditCategoria(e){
       const id=e.currentTarget.dataset.id;
-      // [FIX 1/2] Usa '==' para coerção de tipo (string/number) no ID.
-      const cat=categoriasCache.find(x=>x.id == id); if(!cat) return;
+      const cat=categoriasCache.find(x=>x.id===id); if(!cat) return;
       qs('#cat_edit_id').value=id;
       qs('#cat_nome').value=cat.nome||'';
       qs('#cat_tipo').value=cat.tipo||'debito';
@@ -902,7 +998,6 @@
       }catch(e){qs('#imp_msg').innerHTML=`<span class="pill">ERRO</span> ${e.message}`}
     };
 
-    // Rebind inicial se já estiver na aba de saldos
     if (location.hash.replace(/^#\/?/,'') === 'saldos' && currentSession) consultar();
   </script>
 </body>

@@ -3,6 +3,19 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.26] — 2025-10-20
+### Fixed
+- **Categoria na lista**: além do _match_ por nome, enriquece por **ID** após o render (busca `categoria_id` das transações materializadas e injeta a *pill*).
+- **Modal de edição**: garante `carregarCategoriasCache()` antes de popular o `<select>` e pré-seleciona por `categoria_id` (fallback por nome normalizado).
+
+### Changed
+- **Excluir recorrência**: novo modal com **[Série] [Futuras] [Cancelar]**.
+
+### Behavior
+- **Materializar ocorrência de recorrência**: materializa **vinculando** à série, **fecha a série** em `fim = data-1` e **cria nova série** a partir do mês seguinte — evita apagar previsões futuras e remove o “virtual” do mês atual.
+
+---
+
 ## [1.4.25] — 2025-10-20
 ### Fixed
 - [cite_start]**Categorias (Lista e Modal):** Corrigida a exibição de categorias na lista [cite: 1] [cite_start]e a seleção na modal de edição[cite: 3]. [cite_start]A busca de categoria por ID agora usa coerção de tipo (`==`) para compatibilizar IDs (número/string), resolvendo o *bug* em que a categoria aparecia como "(sem categoria)"[cite: 3, 4].
