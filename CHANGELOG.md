@@ -3,6 +3,19 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.24] — 2025-10-20
+### Fixed
+- **Lista de transações:** exibe a **categoria** mesmo sem `categoria_id` (fallback por nome com normalização de acentos).
+- **Modal de edição:** categoria **pré-selecionada** por `categoria_id` ou, na ausência, por nome.
+
+### Changed
+- **Excluir recorrência:** opção de **“dali em diante”** (define `fim = dia-1` da ocorrência clicada).
+
+### Behavior
+- **Materializar ocorrência de recorrência:** agora **não** vincula `recorrencia_id` para **preservar previsões futuras**.
+
+---
+
 ## [1.4.23] — 2025-10-19
 ### Fixed
 - **Lista de transações**: exibe a **categoria** mesmo quando o RPC não envia `categoria_id` (fallback por nome).

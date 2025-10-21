@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.23</title>
+  <title>MWFinance — v1.4.24</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -65,7 +65,7 @@
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.23</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.24</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -291,6 +291,7 @@
 
     const catTypeShort = (tipo)=> tipo==='debito'?'D':'C';
     const catTypeFull  = (tipo)=> tipo==='debito'?'Débito':'Crédito';
+    const normalize = (s)=> (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim().toLowerCase();
 
     function mergeHeaders(base) {
       return { ...base, Prefer: (base.Prefer ? base.Prefer + ', ' : '') + 'return=representation' };
@@ -414,19 +415,20 @@
       }catch{ categoriasCache=[]; }
     }
     const catNameById = (id)=> categoriasCache.find(c=>c.id===id)?.nome || '';
+    const catByName = (nome)=>{
+      const n = normalize(nome);
+      return categoriasCache.find(c=> normalize(c.nome) === n) || null;
+    };
 
     // resolve categoria a partir do objeto de transação do RPC (com/sem categoria_id)
     function resolveCategory(tx){
       let id = tx.categoria_id || tx.categoriaId || null;
       let nome = '';
-      if (id){
-        nome = catNameById(id);
-      }
-      // fallback por nome (campo pode vir como categoria_nome ou categoria)
+      if (id){ nome = catNameById(id); }
       if (!nome){
-        const cand = (tx.categoria_nome || tx.categoria || '').toString().trim();
+        const cand = tx.categoria_nome ?? tx.categoria ?? tx.categoriaName ?? '';
         if (cand){
-          const hit = categoriasCache.find(c=>c.nome.toLowerCase() === cand.toLowerCase());
+          const hit = catByName(cand);
           if (hit){ id = hit.id; nome = hit.nome; }
         }
       }
@@ -455,8 +457,7 @@
         const conta=$conta.value,ym=$mesRef.value;
         if(!conta||!ym){$out.innerHTML='<div class="muted">Selecione a conta e mês.</div>';return}
         const ref=ym+'-01';
-        // garantir cache de categorias antes de renderizar
-        await carregarCategoriasCache();
+        await carregarCategoriasCache(); // garante categorias antes de listar
 
         const r=await fetch(`${SUPABASE_URL}/rest/v1/rpc/saldos_diarios`,{
           method:'POST',headers:await hdr(),
@@ -507,6 +508,7 @@
   data-recorrencia-id="${t.recorrencia_id||''}"
   data-conta-id="${t.conta_id||''}"
   data-categoria-id="${catId||''}"
+  data-categoria-nome="${(catNome||'').replace(/\"/g,'&quot;')}"
   data-data="${t.data||dia}"
   data-descricao="${(t.descricao||'').replace(/\"/g,'&quot;')}"
   data-tipo="${t.tipo}"
@@ -520,13 +522,15 @@
           ? `<button class="tx-mat-edit btn-link"
                data-virtual="true" data-recorrencia-id="${t.recorrencia_id||''}" data-conta-id="${t.conta_id||''}"
                data-data="${t.data||dia}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
-               data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}" data-categoria-id="${catId||''}">Editar</button>`
+               data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}"
+               data-categoria-id="${catId||''}" data-categoria-nome="${(catNome||'').replace(/\"/g,'&quot;')}">Editar</button>`
           : `<button class="tx-edit btn-link"
                data-virtual="false" data-id="${t.id||''}"
                data-data="${t.data||dia}" data-descricao="${(t.descricao||'').replace(/"/g,'&quot;')}"
-               data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}" data-categoria-id="${catId||''}">Editar</button>`;
+               data-tipo="${t.tipo}" data-valor="${t.valor}" data-status="${t.status||'cadastrada'}"
+               data-categoria-id="${catId||''}" data-categoria-nome="${(catNome||'').replace(/\"/g,'&quot;')}">Editar</button>`;
         const delBtn = t.virtual
-          ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}">Excluir recorrência</button>`
+          ? `<button class="tx-del-rec btn-danger" data-recorrencia-id="${t.recorrencia_id}" data-dia="${t.data||dia}">Excluir recorrência…</button>`
           : `<button class="tx-del btn-danger" data-id="${t.id}" data-status="${t.status||'cadastrada'}">Excluir</button>`;
         return `<li>${typeBadge} <strong>${t.descricao}</strong> — ${money(t.valor)}${catPill} ${t.virtual?'<span class="pill">virtual</span>':''}
           <span style="margin-left:8px;display:inline-flex;gap:8px;">${select}${editBtn}${delBtn}</span></li>`;
@@ -553,6 +557,7 @@
       const s=e.currentTarget, v=s.value;
       try{
         if (s.dataset.virtual === 'true'){
+          // MATERIALIZA APENAS ESTA OCORRÊNCIA (não linka a recorrência para não “matar” previsões futuras)
           const body = {
             user_id: currentUserId,
             conta_id: s.dataset.contaId,
@@ -561,7 +566,7 @@
             valor: Number(s.dataset.valor),
             data: s.dataset.data,
             status: v,
-            recorrencia_id: s.dataset.recorrenciaId || null
+            recorrencia_id: null
           };
           if (HAS_CATID_IN_TRANS && s.dataset.categoriaId) body.categoria_id = s.dataset.categoriaId;
           await tryPost('/rest/v1/transacoes', body);
@@ -582,11 +587,23 @@
       api('DELETE',`/rest/v1/transacoes?id=eq.${encodeURIComponent(id)}`)
         .then(()=>consultar(true)).catch(err=>alert(err.message));
     }
-    function onDeleteRec(e){
-      const id=e.currentTarget.dataset.recorrenciaId;
-      if(!confirm('Excluir a RECORRÊNCIA inteira? Esta ação remove previsões futuras desta série.'))return;
-      api('DELETE',`/rest/v1/recorrencias?id=eq.${encodeURIComponent(id)}`)
-        .then(()=>consultar(true)).catch(err=>alert(err.message));
+
+    async function onDeleteRec(e){
+      const recId=e.currentTarget.dataset.recorrenciaId;
+      const diaRef=e.currentTarget.dataset.dia; // dia da ocorrência clicada
+      if(!recId) return;
+      const choice = confirm('Excluir a RECORRÊNCIA inteira? (OK = toda série, Cancelar = escolher “dali em diante”)');
+      try{
+        if(choice){
+          await api('DELETE',`/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`);
+        }else{
+          if(!diaRef){ alert('Não foi possível obter a data de referência.'); return; }
+          const d=new Date(diaRef); d.setDate(d.getDate()-1);
+          const fim = d.toISOString().slice(0,10);
+          await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim });
+        }
+        consultar(true);
+      }catch(err){ alert('Erro ao atualizar recorrência: '+err.message); }
     }
 
     function renderTabela(rows){
@@ -622,7 +639,7 @@
       qs('#modalTitle').textContent='Nova Transação';
       grpPar.style.display='none';grpPer.style.display='none';grpScope.style.display='none';f_kind.value='unica';
       f_desc.value='';f_tipo.value='debito';f_valor.value='';f_data.value=new Date().toISOString().slice(0,10);f_status.value='cadastrada';
-      populateCategoriasSelect('debito',''); // default
+      populateCategoriasSelect('debito','');
       $modal.classList.add('open');$modal.style.display='flex';
     }
 
@@ -632,10 +649,10 @@
       grpPar.style.display='none';grpPer.style.display='none';f_kind.value='unica';
       f_desc.value=descricao||'';f_tipo.value=tipo||'debito';f_valor.value=valor||'';f_data.value=data||new Date().toISOString().slice(0,10);f_status.value=status||'cadastrada';
 
-      // resolve categoria: prioridade id; fallback nome
+      // resolve categoria: prioridade id; fallback nome (normalizado)
       let selected = categoria_id || null;
       if (!selected && categoria_nome){
-        const hit = categoriasCache.find(c=>c.nome.toLowerCase()===String(categoria_nome).toLowerCase());
+        const hit = categoriasCache.find(c=> normalize(c.nome) === normalize(categoria_nome) );
         if (hit) selected = hit.id;
       }
       populateCategoriasSelect(tipo, selected||'');
@@ -721,7 +738,8 @@
             if (!recId) throw new Error('recorrencia_id ausente');
 
             if (scope==='occurrence'){
-              await tryPost('/rest/v1/transacoes', { ...base, recorrencia_id: recId });
+              // materializa apenas esta, sem linkar a série
+              await tryPost('/rest/v1/transacoes', { ...base, recorrencia_id: null });
             } else if (scope==='series'){
               await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, {
                 user_id: currentUserId, descricao: base.descricao, tipo: base.tipo, valor: base.valor
