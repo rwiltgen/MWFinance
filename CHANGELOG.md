@@ -3,6 +3,22 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.27] — 2025-10-20
+### Fixed
+- **Lista:** pill de **categoria** mais robusta (resolve por `categoria_id`/nome e pós-render busca IDs faltantes).
+- **Modal de edição:** dropdown de **categoria** agora carrega e pré-seleciona corretamente (aguarda cache + filtro por tipo).
+
+### Changed
+- **Excluir recorrência:** popup com **[Série] [Futuras] [Cancelar]** e **Cancelar** à direita em vermelho.
+
+### Behavior
+- **Materializar (virtual → agendada/efetivada):**
+  - Cria transação **vinculada** ao `recorrencia_id` (remove virtual do mês).
+  - **Fecha a série** em `fim = data` (inclusive).
+  - **Cria nova série** a partir do mês seguinte **sem duplicar** (checa duplicidade antes de criar).
+
+---
+
 ## [1.4.26] — 2025-10-20
 ### Fixed
 - **Categoria na lista**: além do _match_ por nome, enriquece por **ID** após o render (busca `categoria_id` das transações materializadas e injeta a *pill*).

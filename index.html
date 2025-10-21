@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.26</title>
+  <title>MWFinance — v1.4.27</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -64,12 +64,14 @@
     #confirmRec{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:1100}
     #confirmRec.open{display:flex}
     #confirmRec .modal{max-width:520px}
+    #confirmRec .actions{display:flex;gap:8px;justify-content:flex-end}
+    #confirmRec .actions .btn-danger{order:3} /* Cancelar à direita e vermelho */
   </style>
 </head>
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.25</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.27</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -275,10 +277,10 @@
       <div class="modal">
         <h3 style="margin:0 0 10px;">Excluir recorrência</h3>
         <p class="muted" id="confirmRecText" style="margin:0 0 12px;">O que deseja excluir?</p>
-        <div style="display:flex;gap:8px;justify-content:flex-end">
-          <button id="cr_cancel" class="btn-link">Cancelar</button>
+        <div class="actions">
+          <button id="cr_series" class="btn-link">Série</button>
           <button id="cr_future" class="btn-link">Futuras</button>
-          <button id="cr_series" class="btn-danger">Série</button>
+          <button id="cr_cancel" class="btn-danger">Cancelar</button>
         </div>
       </div>
     </div>
@@ -311,22 +313,14 @@
     function addMonths(dateISO, n){
       const d=new Date(dateISO); const day=d.getUTCDate();
       d.setUTCMonth(d.getUTCMonth()+n);
-      // preservar dia quando possível
-      if(d.getUTCDate()!==day){ d.setUTCDate(0); } // fim do mês anterior
+      if(d.getUTCDate()!==day){ d.setUTCDate(0); }
       return d.toISOString().slice(0,10);
     }
-
-    function mergeHeaders(base) {
-      return { ...base, Prefer: (base.Prefer ? base.Prefer + ', ' : '') + 'return=representation' };
-    }
+    function mergeHeaders(base) { return { ...base, Prefer: (base.Prefer ? base.Prefer + ', ' : '') + 'return=representation' }; }
     async function hdr(){
       const { data:{ session } } = await supabase.auth.getSession();
       if(!session) throw new Error('Sem sessão');
-      return mergeHeaders({
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${session.access_token}`,
-        'Content-Type': 'application/json'
-      });
+      return mergeHeaders({ apikey: SUPABASE_ANON_KEY, Authorization: `Bearer ${session.access_token}`, 'Content-Type': 'application/json' });
     }
     async function api(method, path, body){
       const res = await fetch(`${SUPABASE_URL}${path}`, { method, headers: await hdr(), body: body ? JSON.stringify(body) : undefined });
@@ -374,8 +368,7 @@
         const password = qs('#password').value;
         if(!email || !password){ showMsg('error','Informe e-mail e senha.'); return; }
         const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if(error) showMsg('error', 'Erro: '+error.message);
-        else showMsg('ok','Logado!');
+        if(error) showMsg('error', 'Erro: '+error.message); else showMsg('ok','Logado!');
       }catch(e){ showMsg('error','Erro: '+e.message) }
     };
     qs('#btnSignup').onclick=async()=>{
@@ -492,9 +485,7 @@
       }catch(e){$out.innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
     }
 
-    function txKey(t, dia){
-      return t.id ? `m-${t.id}` : `v-${t.recorrencia_id||'x'}-${t.data||dia}`;
-    }
+    function txKey(t, dia){ return t.id ? `m-${t.id}` : `v-${t.recorrencia_id||'x'}-${t.data||dia}`; }
 
     function linhaDia(r){
       const diaISO = r.dia;
@@ -586,11 +577,11 @@
       const s=e.currentTarget, v=s.value;
       try{
         if (s.dataset.virtual === 'true'){
-          // 1) buscar dados da recorrência
+          // buscar recorrência
           const recId = s.dataset.recorrenciaId;
-          const [rec] = await api('GET', `/rest/v1/recorrencias?select=id,conta_id,descricao,tipo,valor,periodicidade&limit=1&id=eq.${encodeURIComponent(recId)}`);
+          const [rec] = await api('GET', `/rest/v1/recorrencias?select=id,conta_id,descricao,tipo,valor,periodicidade,fim&limit=1&id=eq.${encodeURIComponent(recId)}`);
 
-          // 2) materializa ocorrência VINCULANDO à recorrência (remove virtual do mês)
+          // materializa vinculando à recorrência — remove o virtual do mês pelo RPC
           const bodyTx = {
             user_id: currentUserId,
             conta_id: rec?.conta_id || s.dataset.contaId,
@@ -604,26 +595,30 @@
           if (HAS_CATID_IN_TRANS && s.dataset.categoriaId) bodyTx.categoria_id = s.dataset.categoriaId;
           await tryPost('/rest/v1/transacoes', bodyTx);
 
-          // 3) fecha série atual em D e cria nova a partir do mês seguinte
+          // fecha série atual em data (inclusive) para garantir que o mês atual não volte como virtual
           const d = s.dataset.data;
-          const dPrev = new Date(d); dPrev.setDate(dPrev.getDate()-1);
-          const fim = dPrev.toISOString().slice(0,10);
-          await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim });
+          if (!rec?.fim || rec.fim > d){
+            await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim: d });
+          }
 
+          // cria nova série a partir do mês seguinte somente se ainda não existir outra igual começando após d
           const inicioNova = addMonths(d, 1).slice(0,10);
-          await api('POST', '/rest/v1/recorrencias', {
-            user_id: currentUserId,
-            conta_id: rec?.conta_id || s.dataset.contaId,
-            descricao: rec?.descricao || s.dataset.descricao,
-            tipo: rec?.tipo || s.dataset.tipo,
-            valor: Number(rec?.valor || s.dataset.valor || 0),
-            inicio: inicioNova,
-            fim: null,
-            periodicidade: rec?.periodicidade || 'mensal'
-          });
+          const dup = await api('GET', `/rest/v1/recorrencias?select=id&limit=1&conta_id=eq.${encodeURIComponent(rec?.conta_id)}&descricao=eq.${encodeURIComponent(rec?.descricao)}&tipo=eq.${encodeURIComponent(rec?.tipo)}&valor=eq.${encodeURIComponent(rec?.valor)}&inicio=eq.${encodeURIComponent(inicioNova)}`);
+          if (!Array.isArray(dup) || dup.length===0){
+            await api('POST', '/rest/v1/recorrencias', {
+              user_id: currentUserId,
+              conta_id: rec?.conta_id || s.dataset.contaId,
+              descricao: rec?.descricao || s.dataset.descricao,
+              tipo: rec?.tipo || s.dataset.tipo,
+              valor: Number(rec?.valor || s.dataset.valor || 0),
+              inicio: inicioNova,
+              fim: null,
+              periodicidade: rec?.periodicidade || 'mensal'
+            });
+          }
 
         } else {
-          // edição de status em materializada
+          // materializada: troca de status direta
           await tryPatch(`/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v, user_id: currentUserId });
         }
         consultar(true);
@@ -641,7 +636,7 @@
         .then(()=>consultar(true)).catch(err=>alert(err.message));
     }
 
-    // ----- Excluir recorrência (3 botões) -----
+    // ----- Excluir recorrência (3 botões; cancelar vermelho à direita) -----
     let _recConfirm = { id:null, dia:null };
     function onAskDeleteRec(e){
       _recConfirm.id = e.currentTarget.dataset.recorrenciaId;
@@ -680,15 +675,12 @@
     // ---------- Pós-render: enriquecer pills de categoria por ID ----------
     async function enrichCategoryPillsByIds(){
       try{
-        // ids materializados que não têm categoria na UI
         const selects = qsa('.tx-status');
         const ids = selects
           .map(s=>({ id:s.dataset.id, cat:s.dataset.categoriaId }))
           .filter(x=>x.id && !x.cat)
           .map(x=>x.id);
-
         if(!ids.length) return;
-        // fatiar para não estourar URL
         const chunk = 50;
         for(let i=0;i<ids.length;i+=chunk){
           const slice = ids.slice(i,i+chunk).map(encodeURIComponent).join(',');
@@ -700,14 +692,13 @@
                 const key = `m-${r.id}`;
                 const span = qs(`#catpill-${key}`);
                 if(span) span.innerHTML = ` <span class="pill">${catName}</span>`;
-                // também atualiza dataset para futuras ações
                 const sel = selects.find(s=>s.dataset.id===r.id);
                 if(sel){ sel.dataset.categoriaId = r.categoria_id; }
               }
             });
           }
         }
-      }catch{ /* silencioso */ }
+      }catch{}
     }
 
     // ------------ Modal ------------
@@ -830,17 +821,18 @@
             if (!recId) throw new Error('recorrencia_id ausente');
 
             if (scope==='occurrence'){
-              // materializa + split de série
+              // mesma regra da mudança de status de virtual
+              const [rec] = await api('GET', `/rest/v1/recorrencias?select=id,conta_id,descricao,tipo,valor,periodicidade,fim&limit=1&id=eq.${encodeURIComponent(recId)}`);
               const bodyTx = { ...base, recorrencia_id: recId };
               await tryPost('/rest/v1/transacoes', bodyTx);
-              const d = base.data;
-              const dPrev = new Date(d); dPrev.setDate(dPrev.getDate()-1);
-              const fim = dPrev.toISOString().slice(0,10);
-              await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim });
-              const inicioNova = addMonths(d, 1).slice(0,10);
-              await api('POST','/rest/v1/recorrencias',{
-                user_id: currentUserId, conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor, inicio: inicioNova, fim: null, periodicidade:'mensal'
-              });
+              if (!rec?.fim || rec.fim > base.data){
+                await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim: base.data });
+              }
+              const inicioNova = addMonths(base.data, 1).slice(0,10);
+              const dup = await api('GET', `/rest/v1/recorrencias?select=id&limit=1&conta_id=eq.${encodeURIComponent(rec?.conta_id)}&descricao=eq.${encodeURIComponent(rec?.descricao)}&tipo=eq.${encodeURIComponent(rec?.tipo)}&valor=eq.${encodeURIComponent(rec?.valor)}&inicio=eq.${encodeURIComponent(inicioNova)}`);
+              if (!Array.isArray(dup) || dup.length===0){
+                await api('POST','/rest/v1/recorrencias',{ user_id: currentUserId, conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor, inicio: inicioNova, fim: null, periodicidade:'mensal' });
+              }
             } else if (scope==='series'){
               await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, {
                 user_id: currentUserId, descricao: base.descricao, tipo: base.tipo, valor: base.valor
@@ -863,9 +855,8 @@
     qs('#m_save').onclick = salvarCreateOrEdit;
 
     async function tryPost(path, body){
-      try{
-        return await api('POST', path, body);
-      }catch(err){
+      try{ return await api('POST', path, body); }
+      catch(err){
         const msg = String(err.message||'');
         if(msg.includes("Could not find the 'categoria_id'")){
           HAS_CATID_IN_TRANS=false;
@@ -876,9 +867,8 @@
       }
     }
     async function tryPatch(path, body){
-      try{
-        return await api('PATCH', path, body);
-      }catch(err){
+      try{ return await api('PATCH', path, body); }
+      catch(err){
         const msg = String(err.message||'');
         if(msg.includes("Could not find the 'categoria_id'")){
           HAS_CATID_IN_TRANS=false;
