@@ -2,8 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.24</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MWFinance — v1.4.25</title> <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
       --bg:#0b0b10; --card:#141421; --row:#11111a; --row-alt:#11111c;
@@ -65,8 +64,7 @@
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.24</span></div>
-      <div class="right">
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.25</span></div> <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
         <button id="btnLogout" class="btn-link">Sair</button>
@@ -82,7 +80,6 @@
   </header>
 
   <main>
-    <!-- AUTH -->
     <section id="authView" class="card">
       <h2 style="margin:0 0 10px;">Entrar</h2>
       <div class="row" style="flex-direction:column;align-items:stretch;gap:8px">
@@ -94,7 +91,6 @@
         <button id="btnLogin" class="btn-primary">Entrar</button>
         <button id="btnLoginGoogle" class="gbtn" title="Google OAuth">
           <span class="glogo" aria-hidden="true">
-            <!-- Google "G" -->
             <svg viewBox="0 0 48 48">
               <path fill="#EA4335" d="M24 9.5c3.9 0 7 1.6 9.2 3.1l6.2-6.2C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.4 13.2l7.7 6C12 13.4 17.5 9.5 24 9.5z"/>
               <path fill="#4285F4" d="M46.5 24.5c0-1.7-.2-3.4-.6-5H24v9.5h12.7c-.5 2.6-2 4.8-4.2 6.3l6.4 5c3.7-3.4 7.6-8.8 7.6-15.8z"/>
@@ -108,7 +104,6 @@
       <p id="authMsg" class="hint" style="margin:6px 0 0;"></p>
     </section>
 
-    <!-- SALDOS -->
     <section id="view-saldos" class="card app" style="display:none">
       <h2 style="margin:0 0 10px;">Saldos diários</h2>
       <div class="row">
@@ -134,7 +129,6 @@
       <div id="output"></div>
     </section>
 
-    <!-- CONTAS -->
     <section id="view-contas" class="card app" style="display:none">
       <h2 style="margin:0 0 10px;">Contas</h2>
       <div class="row">
@@ -145,7 +139,6 @@
       <div id="contasLista"></div>
     </section>
 
-    <!-- CATEGORIAS -->
     <section id="view-categorias" class="card app" style="display:none">
       <h2 style="margin:0 0 10px;">Categorias</h2>
       <div class="row">
@@ -162,7 +155,6 @@
       <div id="catsLista"></div>
     </section>
 
-    <!-- IMPORTAR -->
     <section id="view-importar" class="card app" style="display:none">
       <h2 style="margin:0 0 10px;">Importar CSV</h2>
       <div class="row">
@@ -183,7 +175,6 @@
       <div id="imp_msg" style="margin-top:8px;"></div>
     </section>
 
-    <!-- MODAL NOVA/EDITAR -->
     <div id="modal-backdrop">
       <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
         <h3 id="modalTitle" style="margin:0 0 8px; font-size:18px;">Nova Transação</h3>
@@ -414,7 +405,8 @@
         categoriasCache = Array.isArray(r)? r : [];
       }catch{ categoriasCache=[]; }
     }
-    const catNameById = (id)=> categoriasCache.find(c=>c.id===id)?.nome || '';
+    // [FIX 1/2] Usa '==' para coerção de tipo (string/number) no ID.
+    const catNameById = (id)=> categoriasCache.find(c=>c.id == id)?.nome || '';
     const catByName = (nome)=>{
       const n = normalize(nome);
       return categoriasCache.find(c=> normalize(c.nome) === n) || null;
@@ -557,7 +549,7 @@
       const s=e.currentTarget, v=s.value;
       try{
         if (s.dataset.virtual === 'true'){
-          // MATERIALIZA APENAS ESTA OCORRÊNCIA (não linka a recorrência para não “matar” previsões futuras)
+          // MATERIALIZA APENAS ESTA OCORRÊNCIA
           const body = {
             user_id: currentUserId,
             conta_id: s.dataset.contaId,
@@ -566,7 +558,8 @@
             valor: Number(s.dataset.valor),
             data: s.dataset.data,
             status: v,
-            recorrencia_id: null
+            [cite_start]// [FIX 4] Vincula o ID da recorrência para suprimir a virtual duplicada (Bug [cite: 4])
+            recorrencia_id: s.dataset.recorrenciaId || null
           };
           if (HAS_CATID_IN_TRANS && s.dataset.categoriaId) body.categoria_id = s.dataset.categoriaId;
           await tryPost('/rest/v1/transacoes', body);
@@ -588,15 +581,25 @@
         .then(()=>consultar(true)).catch(err=>alert(err.message));
     }
 
+    [cite_start]// [FIX 3] Corrige o fluxo de exclusão de recorrência (Bugs [cite: 5][cite_start], [cite: 6])
     async function onDeleteRec(e){
       const recId=e.currentTarget.dataset.recorrenciaId;
       const diaRef=e.currentTarget.dataset.dia; // dia da ocorrência clicada
       if(!recId) return;
-      const choice = confirm('Excluir a RECORRÊNCIA inteira? (OK = toda série, Cancelar = escolher “dali em diante”)');
+
+      [cite_start]// [FIX 3] Per[cite: 5], Cancelar deve ser Cancelar.
+      // Usamos 2 dialogs para 3 opções (Série, Futuras, Cancelar)
+      if (!confirm('Deseja excluir a recorrência?')) {
+        return; [cite_start]// [cite: 5] CANCELAR
+      }
+
+      [cite_start]// [FIX 3] Segundo dialog para [Série] ou [Futuras] (Per [cite: 6])
+      const choiceSerie = confirm('Excluir a SÉRIE INTEIRA?\n\n[ OK ] = Excluir toda a série (passado e futuro)\n[ Cancelar ] = Excluir apenas esta e as futuras (dali em diante)');
+
       try{
-        if(choice){
+        [cite_start]if(choiceSerie){ // [cite: 6] Botão "Série"
           await api('DELETE',`/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`);
-        }else{
+        [cite_start]}else{ // [cite: 6] Botão "Futuras"
           if(!diaRef){ alert('Não foi possível obter a data de referência.'); return; }
           const d=new Date(diaRef); d.setDate(d.getDate()-1);
           const fim = d.toISOString().slice(0,10);
@@ -631,7 +634,8 @@
         .slice()
         .sort((a,b)=>a.nome.localeCompare(b.nome,'pt-BR'));
       f_categoria.innerHTML = `<option value="">(sem categoria)</option>` + list.map(c=>`<option value="${c.id}">${c.nome}</option>`).join('');
-      if (selectedId && list.some(c=>c.id===selectedId)) f_categoria.value = selectedId;
+      // [FIX 1/2] Usa '==' para coerção de tipo (string/number) no ID. [cite_start](Bug [cite: 3])
+      if (selectedId && list.some(c=>c.id == selectedId)) f_categoria.value = selectedId;
     }
 
     function openModal(){
@@ -652,7 +656,7 @@
       // resolve categoria: prioridade id; fallback nome (normalizado)
       let selected = categoria_id || null;
       if (!selected && categoria_nome){
-        const hit = categoriasCache.find(c=> normalize(c.nome) === normalize(categoria_nome) );
+        const hit = catByName(categoria_nome); // Usa helper
         if (hit) selected = hit.id;
       }
       populateCategoriasSelect(tipo, selected||'');
@@ -829,7 +833,8 @@
     }
     function startEditCategoria(e){
       const id=e.currentTarget.dataset.id;
-      const cat=categoriasCache.find(x=>x.id===id); if(!cat) return;
+      // [FIX 1/2] Usa '==' para coerção de tipo (string/number) no ID.
+      const cat=categoriasCache.find(x=>x.id == id); if(!cat) return;
       qs('#cat_edit_id').value=id;
       qs('#cat_nome').value=cat.nome||'';
       qs('#cat_tipo').value=cat.tipo||'debito';

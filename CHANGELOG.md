@@ -3,6 +3,14 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.25] — 2025-10-20
+### Fixed
+- [cite_start]**Categorias (Lista e Modal):** Corrigida a exibição de categorias na lista [cite: 1] [cite_start]e a seleção na modal de edição[cite: 3]. [cite_start]A busca de categoria por ID agora usa coerção de tipo (`==`) para compatibilizar IDs (número/string), resolvendo o *bug* em que a categoria aparecia como "(sem categoria)"[cite: 3, 4].
+- [cite_start]**Excluir Recorrência (UX):** Corrigido o fluxo de exclusão de recorrência[cite: 5]. [cite_start]O `Cancelar` da primeira confirmação agora de fato cancela a operação[cite: 5]. [cite_start]Um segundo *prompt* permite escolher entre excluir a [ Série ] inteira ou apenas as [ Futuras ][cite: 6].
+- [cite_start]**Materialização de Recorrência:** Corrigida a materialização de ocorrência virtual (agendar/efetivar)[cite: 4]. [cite_start]A transação materializada agora é vinculada à `recorrencia_id`, suprimindo a ocorrência virtual duplicada na listagem[cite: 4].
+
+---
+
 ## [1.4.24] — 2025-10-20
 ### Fixed
 - **Lista de transações:** exibe a **categoria** mesmo sem `categoria_id` (fallback por nome com normalização de acentos).
