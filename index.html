@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8" />
-  <title>MWFinance — v1.4.27</title>
+  <title>MWFinance — v1.4.28</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root{
@@ -71,7 +71,7 @@
 <body>
   <header class="app">
     <div id="userBar" class="card">
-      <div><strong>MWFinance</strong> <span class="muted">| v1.4.27</span></div>
+      <div><strong>MWFinance</strong> <span class="muted">| v1.4.28</span></div>
       <div class="right">
         <span id="userInfo" class="muted">—</span>
         <span class="avatar"></span>
@@ -299,7 +299,16 @@
     const money = (n)=> (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
     const nav = { saldos:qs('#nav-saldos'), contas:qs('#nav-contas'), categorias:qs('#nav-categorias'), importar:qs('#nav-importar') };
     const sections = { saldos:qs('#view-saldos'), contas:qs('#view-contas'), categorias:qs('#view-categorias'), importar:qs('#view-importar') };
-    const todayISO = new Date().toISOString().slice(0,10);
+
+    // datas locais (corrige "amanhã" vs "hoje")
+    function todayLocalISO(){
+      const d=new Date();
+      const y=d.getFullYear(), m=d.getMonth()+1, day=d.getDate();
+      return `${y}-${String(m).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    }
+    const todayISO = todayLocalISO();
+    function ymLocal(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`; }
+
     const onlyDay = (diaISO)=> String(Number((diaISO||'').slice(8,10)||'0'));
     const normalize = (s)=> (s||'').toString().normalize('NFD').replace(/\p{Diacritic}/gu,'').trim().toLowerCase();
 
@@ -311,11 +320,13 @@
     const catTypeFull  = (tipo)=> tipo==='debito'?'Débito':'Crédito';
 
     function addMonths(dateISO, n){
-      const d=new Date(dateISO); const day=d.getUTCDate();
-      d.setUTCMonth(d.getUTCMonth()+n);
-      if(d.getUTCDate()!==day){ d.setUTCDate(0); }
-      return d.toISOString().slice(0,10);
+      const d=new Date(dateISO); const day=d.getDate();
+      d.setMonth(d.getMonth()+n);
+      if(d.getDate()!==day){ d.setDate(0); }
+      const y=d.getFullYear(), m=d.getMonth()+1, dd=d.getDate();
+      return `${y}-${String(m).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
     }
+
     function mergeHeaders(base) { return { ...base, Prefer: (base.Prefer ? base.Prefer + ', ' : '') + 'return=representation' }; }
     async function hdr(){
       const { data:{ session } } = await supabase.auth.getSession();
@@ -403,7 +414,7 @@
 
     async function initAfterLogin(){
       try{
-        qs('#mesRef').value = new Date().toISOString().slice(0,7);
+        qs('#mesRef').value = ymLocal();
         await carregarContas();
         await carregarCategoriasCache();
         const first = qs('#conta').querySelector('option');
@@ -418,7 +429,7 @@
 
     // ---------- SALDOS ----------
     const $conta=qs('#conta'),$mesRef=qs('#mesRef'),$out=qs('#output');
-    $mesRef.value=new Date().toISOString().slice(0,7);
+    $mesRef.value=ymLocal();
     const expandedDays = new Set();
     window._lastRows = null;
 
@@ -437,7 +448,7 @@
     };
 
     function resolveCategory(tx){
-      let id = tx.categoria_id || tx.categoriaId || null;
+      let id = tx.categoria_id ?? tx.categoriaId ?? null;
       let nome = '';
       if (id){ nome = catNameById(id); }
       if (!nome){
@@ -452,9 +463,9 @@
 
     function addMonthsYM(ym,d){
       const[y,m]=ym.split('-').map(Number);
-      const dt=new Date(Date.UTC(Number(y),Number(m)-1,1));
-      dt.setUTCMonth(dt.getUTCMonth()+d);
-      return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}`;
+      const dt=new Date(); dt.setFullYear(y); dt.setMonth(m-1); dt.setDate(1);
+      dt.setMonth(dt.getMonth()+d);
+      return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}`;
     }
     qs('#btnAtualizar').onclick=()=>consultar(false);
     qs('#btnMesAnterior').onclick=()=>{$mesRef.value=addMonthsYM($mesRef.value,-1);consultar(false)};
@@ -480,7 +491,19 @@
         });
         if(!r.ok) throw new Error(await r.text());
         const rows = await r.json();
-        if(!keepExpanded) expandedDays.clear();
+
+        // regra de expansão default (itens 7 e 8)
+        if(!keepExpanded){
+          expandedDays.clear();
+          rows.forEach(row=>{
+            const dia = row.dia;
+            const txs = Array.isArray(row.transacoes)? row.transacoes : [];
+            const hasPendingPast = (dia < todayISO) && txs.some(t => (t.status||'cadastrada')!=='efetivada');
+            const isFutureOrToday = (dia >= todayISO);
+            if (hasPendingPast || isFutureOrToday) expandedDays.add(dia);
+          });
+        }
+
         renderTabela(rows);
       }catch(e){$out.innerHTML=`<div class="muted">Erro: ${e.message}</div>`}
     }
@@ -499,8 +522,9 @@
       const todayPol = (diaISO === todayISO) ? (Number(r.saldo)>=0?'pos':'neg') : '';
 
       const caret = isOpen ? '▲' : '▼';
+      const labelCount = cnt===1 ? '1 Transação' : `${cnt} Transações`; /* item 9 */
       const toggleBtn = cnt
-        ? `<button class="btn-link toggle" data-dia="${diaISO}" data-count="${cnt}"><span class="caret">${caret}</span> ${cnt} transação(ões)</button>`
+        ? `<button class="btn-link toggle" data-dia="${diaISO}" data-count="${cnt}"><span class="caret">${caret}</span> ${labelCount}</button>`
         : `<span class="muted">–</span>`;
 
       const linha = `<tr class="row-dia ${dateClass} ${Number(r.saldo)<0?'row-neg':''}">
@@ -577,11 +601,9 @@
       const s=e.currentTarget, v=s.value;
       try{
         if (s.dataset.virtual === 'true'){
-          // buscar recorrência
           const recId = s.dataset.recorrenciaId;
           const [rec] = await api('GET', `/rest/v1/recorrencias?select=id,conta_id,descricao,tipo,valor,periodicidade,fim&limit=1&id=eq.${encodeURIComponent(recId)}`);
 
-          // materializa vinculando à recorrência — remove o virtual do mês pelo RPC
           const bodyTx = {
             user_id: currentUserId,
             conta_id: rec?.conta_id || s.dataset.contaId,
@@ -595,14 +617,12 @@
           if (HAS_CATID_IN_TRANS && s.dataset.categoriaId) bodyTx.categoria_id = s.dataset.categoriaId;
           await tryPost('/rest/v1/transacoes', bodyTx);
 
-          // fecha série atual em data (inclusive) para garantir que o mês atual não volte como virtual
           const d = s.dataset.data;
           if (!rec?.fim || rec.fim > d){
             await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim: d });
           }
 
-          // cria nova série a partir do mês seguinte somente se ainda não existir outra igual começando após d
-          const inicioNova = addMonths(d, 1).slice(0,10);
+          const inicioNova = addMonths(d, 1);
           const dup = await api('GET', `/rest/v1/recorrencias?select=id&limit=1&conta_id=eq.${encodeURIComponent(rec?.conta_id)}&descricao=eq.${encodeURIComponent(rec?.descricao)}&tipo=eq.${encodeURIComponent(rec?.tipo)}&valor=eq.${encodeURIComponent(rec?.valor)}&inicio=eq.${encodeURIComponent(inicioNova)}`);
           if (!Array.isArray(dup) || dup.length===0){
             await api('POST', '/rest/v1/recorrencias', {
@@ -618,7 +638,6 @@
           }
 
         } else {
-          // materializada: troca de status direta
           await tryPatch(`/rest/v1/transacoes?id=eq.${encodeURIComponent(s.dataset.id)}`, { status: v, user_id: currentUserId });
         }
         consultar(true);
@@ -636,7 +655,7 @@
         .then(()=>consultar(true)).catch(err=>alert(err.message));
     }
 
-    // ----- Excluir recorrência (3 botões; cancelar vermelho à direita) -----
+    // ----- Excluir recorrência (3 botões) -----
     let _recConfirm = { id:null, dia:null };
     function onAskDeleteRec(e){
       _recConfirm.id = e.currentTarget.dataset.recorrenciaId;
@@ -654,7 +673,7 @@
     qs('#cr_future').onclick=async()=>{
       try{
         const d=new Date(_recConfirm.dia); d.setDate(d.getDate()-1);
-        const fim = d.toISOString().slice(0,10);
+        const fim = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
         await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(_recConfirm.id)}`, { user_id: currentUserId, fim });
         qs('#confirmRec').classList.remove('open'); consultar(true);
       }catch(err){ alert('Erro: '+err.message); }
@@ -722,7 +741,7 @@
       f_mode.value='create';f_edit_id.value='';f_edit_virtual.value='false';f_edit_recorrencia_id.value='';
       qs('#modalTitle').textContent='Nova Transação';
       grpPar.style.display='none';grpPer.style.display='none';grpScope.style.display='none';f_kind.value='unica';
-      f_desc.value='';f_tipo.value='debito';f_valor.value='';f_data.value=new Date().toISOString().slice(0,10);f_status.value='cadastrada';
+      f_desc.value='';f_tipo.value='debito';f_valor.value='';f_data.value=todayLocalISO();f_status.value='cadastrada';
       populateCategoriasSelect('debito','');
       $modal.classList.add('open');$modal.style.display='flex';
     }
@@ -731,13 +750,21 @@
       f_mode.value='edit';f_edit_id.value=id||'';f_edit_virtual.value=String(!!virtual);f_edit_recorrencia_id.value = recorrencia_id || '';
       qs('#modalTitle').textContent=virtual?'Editar (recorrência)':'Editar transação';
       grpPar.style.display='none';grpPer.style.display='none';f_kind.value='unica';
-      f_desc.value=descricao||'';f_tipo.value=tipo||'debito';f_valor.value=valor||'';f_data.value=data||new Date().toISOString().slice(0,10);f_status.value=status||'cadastrada';
+      f_desc.value=descricao||'';f_tipo.value=tipo||'debito';f_valor.value=valor||'';f_data.value=data||todayLocalISO();f_status.value=status||'cadastrada';
 
+      // (Item 2) garantir categoria selecionada buscando do banco ao editar materializada
       let selected = categoria_id || null;
+      if (!virtual && id){
+        try{
+          const [row] = await api('GET', `/rest/v1/transacoes?select=id,categoria_id&limit=1&id=eq.${encodeURIComponent(id)}`);
+          if (row?.categoria_id) selected = row.categoria_id;
+        }catch{}
+      }
       if (!selected && categoria_nome){
         const hit = categoriasCache.find(c=> normalize(c.nome) === normalize(categoria_nome) );
         if (hit) selected = hit.id;
       }
+
       await populateCategoriasSelect(tipo, selected||'');
       grpScope.style.display = virtual ? 'block' : 'none';
       $modal.classList.add('open');$modal.style.display='flex';
@@ -803,10 +830,10 @@
             const n=parseInt(f_qtd.value,10); if(!n||n<2) throw new Error('Qtd de parcelas (>=2)');
             const [y,m,d]=base.data.split('-').map(Number); const arr=[];
             for(let i=1;i<=n;i++){
-              const dt=new Date(Date.UTC(y,m-1,d));dt.setUTCMonth(dt.getUTCMonth()+i-1);
+              const dt=new Date(y, m-1, d); dt.setMonth(dt.getMonth()+i-1);
               const b = buildTransacaoBase(conta_id);
               b.descricao = `${base.descricao} (${i}/${n})`;
-              b.data = dt.toISOString().slice(0,10);
+              b.data = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
               arr.push(b);
             }
             await tryPost('/rest/v1/transacoes', arr);
@@ -821,25 +848,25 @@
             if (!recId) throw new Error('recorrencia_id ausente');
 
             if (scope==='occurrence'){
-              // mesma regra da mudança de status de virtual
               const [rec] = await api('GET', `/rest/v1/recorrencias?select=id,conta_id,descricao,tipo,valor,periodicidade,fim&limit=1&id=eq.${encodeURIComponent(recId)}`);
               const bodyTx = { ...base, recorrencia_id: recId };
               await tryPost('/rest/v1/transacoes', bodyTx);
               if (!rec?.fim || rec.fim > base.data){
                 await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim: base.data });
               }
-              const inicioNova = addMonths(base.data, 1).slice(0,10);
+              const inicioNova = addMonths(base.data, 1);
               const dup = await api('GET', `/rest/v1/recorrencias?select=id&limit=1&conta_id=eq.${encodeURIComponent(rec?.conta_id)}&descricao=eq.${encodeURIComponent(rec?.descricao)}&tipo=eq.${encodeURIComponent(rec?.tipo)}&valor=eq.${encodeURIComponent(rec?.valor)}&inicio=eq.${encodeURIComponent(inicioNova)}`);
               if (!Array.isArray(dup) || dup.length===0){
                 await api('POST','/rest/v1/recorrencias',{ user_id: currentUserId, conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor, inicio: inicioNova, fim: null, periodicidade:'mensal' });
               }
             } else if (scope==='series'){
+              // somente PATCH — não criar nova série (corrige item 5)
               await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, {
                 user_id: currentUserId, descricao: base.descricao, tipo: base.tipo, valor: base.valor
               });
             } else if (scope==='from_now'){
               const d=new Date(base.data); d.setDate(d.getDate()-1);
-              const fim = d.toISOString().slice(0,10);
+              const fim = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
               await api('PATCH', `/rest/v1/recorrencias?id=eq.${encodeURIComponent(recId)}`, { user_id: currentUserId, fim });
               await api('POST','/rest/v1/recorrencias',{
                 user_id: currentUserId, conta_id, descricao: base.descricao, tipo: base.tipo, valor: base.valor, inicio: base.data, fim: null, periodicidade:'mensal'

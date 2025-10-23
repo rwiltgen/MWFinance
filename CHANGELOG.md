@@ -3,6 +3,23 @@ Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 ---
 
+## [1.4.28] — 2025-10-20
+### Fixed
+- **Categoria na lista (item 1):** mostrou *pill* de categoria mesmo quando o `categoria_id` não vinha no RPC — pós-render busca `transacoes(id,categoria_id)` e injeta no DOM.
+- **Modal de edição (item 2):** ao editar materializadas, faz *fetch* do `categoria_id` por `id` e pré-seleciona no `<select>`; mantém filtro por tipo.
+- **“Hoje” (item 6):** usa data **local** (não UTC), corrigindo o destaque que caía em “amanhã”.
+- **Recorrência (item 5):** editar **série** faz só `PATCH` (sem criar nova), evitando duplicidade de virtuais.
+
+### Added
+- **Expansão automática (itens 7 e 8):**
+  - Dias **passados** com pendências (status != efetivada) abrem **por padrão**.
+  - Todos os dias de **hoje para frente** abrem **por padrão**.
+
+### Changed
+- **Texto do botão (item 9):** pluralização correta — “1 Transação” ou “N Transações” (acabou “Transação(ões)”).
+
+---
+
 ## [1.4.27] — 2025-10-20
 ### Fixed
 - **Lista:** pill de **categoria** mais robusta (resolve por `categoria_id`/nome e pós-render busca IDs faltantes).
